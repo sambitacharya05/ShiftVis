@@ -27,7 +27,6 @@ class Segment:
 
 class ImageSegmentor:
     """A class to handle segmentation of images into overlapping tiles."""
-
     def __init__(self, segment_size: int = 256, overlap_percentage: float = 0.10):
         """
         Initialize the Segmentor with specified segment size and overlap settings.
@@ -71,12 +70,12 @@ class ImageSegmentor:
             >>> segmenter.calculate_grid(1000, 800)
             (4, 5)
         """
-        if( image_height <= 0 or image_width <= 0):
+        if image_height <= 0 or image_width <= 0:
             raise ValueError(f"Image dimensions must be positive: {image_height}x{image_width}")
         
         num_cols = self._calculate_segments_for_dimension(image_width)
         num_rows = self._calculate_segments_for_dimension(image_height)
-        return (num_rows, num_cols)
+        return num_rows, num_cols
         
     def segment_image(self, image: np.ndarray) -> list[Segment]:
         """
@@ -90,30 +89,30 @@ class ImageSegmentor:
         """
         # Determine image dimensions and extract height and width
         if image.ndim == 3:
-            image_height, image_width, _ = image.shape
+            im_height, im_width, _ = image.shape[:2]
         else:
-            image_height, image_width = image.shape
+            im_height, im_width = image.shape
 
         # Calculate grid of segments
-        num_rows, num_cols = self.calculate_grid(image_height, image_width)
+        n_rows, n_cols = self.calculate_grid(im_height, im_width)
         
         segments = [] # List to hold segment metadata
 
-        for row in range(num_rows): # Iterate over rows: vertical position
-            for col in range(num_cols): # Iterate over columns: horizontal position
+        for row in range(n_rows): # Iterate over rows: vertical position
+            for col in range(n_cols): # Iterate over columns: horizontal position
                 # Calculate top-left corner of segment
                 x = col * self.stride
                 y = row * self.stride
 
                 # Calculate actual width and height to avoid exceeding image boundaries
-                seg_width = min(self.segment_size, image_width - x)
-                seg_height = min(self.segment_size, image_height - y)
+                seg_width = min(self.segment_size, im_width - x)
+                seg_height = min(self.segment_size, im_height - y)
 
                 # Define bounding box as (x1, y1, x2, y2)
                 bbox = (x, y, x + seg_width, y + seg_height)
 
                 # Create Segment object with metadata
-                segment = Segment(
+                each_segment = Segment(
                     segment_id = f"seg_r{row}_c{col}",
                     x = x,
                     y = y,
@@ -124,7 +123,7 @@ class ImageSegmentor:
                 )
 
                 # Append segment metadata to list
-                segments.append(segment)
+                segments.append(each_segment)
         
         # Return list of segment metadata
         return segments
@@ -139,14 +138,6 @@ class ImageSegmentor:
             
         Returns:
             Segment image data as numpy array
-            
-        Examples:
-            >>> segmenter = ImageSegmenter()
-            >>> image = np.random.rand(512, 512, 3)
-            >>> segments = segmenter.segment_image(image)
-            >>> data = segmenter.extract_segment_data(image, segments[0])
-            >>> data.shape
-            (256, 256, 3)
         """
         y_start = segment.y
         y_end = segment.y + segment.height
@@ -157,3 +148,94 @@ class ImageSegmentor:
         else:
             segment_data = image[y_start:y_end, x_start:x_end]
         return segment_data
+
+# TESTING CODE
+if __name__ == "__main__":
+    import cv2
+    import os
+
+    print("=== Image Segmentation Visualization ===\n")
+
+    # Load test image
+    image_path = "data/test-docs/input.png"
+
+    if not os.path.exists(image_path):
+        print(f"❌ Error: Image not found at {image_path}")
+        print("Please ensure the file exists or update the path.")
+        exit(1)
+
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"❌ Error: Failed to load image from {image_path}")
+        exit(1)
+
+    print(f"✓ Loaded image: {image.shape} (H, W, C)")
+
+    # Create segmentor
+    segmentor = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
+    print(f"✓ Created segmentor: segment_size={segmentor.segment_size}, overlap={segmentor.overlap_percentage}")
+    print(f"  - Overlap pixels: {segmentor.overlap_pixels}")
+    print(f"  - Stride: {segmentor.stride}")
+
+    # Calculate grid
+    num_rows, num_cols = segmentor.calculate_grid(image.shape[0], image.shape[1])
+    print(f"\n✓ Grid calculation: {num_rows} rows × {num_cols} cols = {num_rows * num_cols} segments")
+
+    # Segment the image
+    segments = segmentor.segment_image(image)
+    print(f"✓ Created {len(segments)} segments\n")
+
+    # Create visualization
+    vis_image = image.copy()
+
+    # Draw all segment bounding boxes
+    for i, segment in enumerate(segments):
+        x1, y1, x2, y2 = segment.bbox
+
+        # Alternate colors for better visibility
+        if i % 2 == 0:
+            color = (0, 255, 0)  # Green
+        else:
+            color = (255, 0, 0)  # Blue
+
+        # Draw rectangle
+        cv2.rectangle(vis_image, (x1, y1), (x2, y2), color, 2)
+
+        # Add segment ID label
+        cv2.putText(
+            vis_image,
+            segment.segment_id,
+            (x1 + 5, y1 + 20),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            color,
+            1,
+            cv2.LINE_AA
+        )
+
+    # Save visualization
+    output_path = "data/test-docs/segmentation_output.png"
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    cv2.imwrite(output_path, vis_image)
+    print(f"✓ Saved visualization to: {output_path}")
+
+    # Display segment details (first 5)
+    print(f"\n=== First 5 Segments ===")
+    for segment in segments[:5]:
+        print(f"{segment.segment_id}:")
+        print(f"  Position: ({segment.x}, {segment.y})")
+        print(f"  Size: {segment.width}×{segment.height}")
+        print(f"  Bbox: {segment.bbox}")
+
+    # Test extract_segment_data on first segment
+    print(f"\n=== Testing extract_segment_data ===")
+    first_seg = segments[0]
+    seg_data = segmentor.extract_segment_data(image, first_seg)
+    print(f"✓ Extracted {first_seg.segment_id}: shape={seg_data.shape}")
+
+    # Save first segment as separate image
+    seg_output_path = "data/test-docs/first_segment.png"
+    cv2.imwrite(seg_output_path, seg_data)
+    print(f"✓ Saved first segment to: {seg_output_path}")
+
+    print("\n✅ Segmentation test complete!")
