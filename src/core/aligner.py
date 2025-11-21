@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Tuple, Optional
 from enum import Enum
 
-from segmentor import Segment, ImageSegmentor
-from preprocessor import Preprocessor
+from .segmentor import Segment, ImageSegmentor
+from .preprocessor import Preprocessor
 
 class AlignmentType(Enum):
     """
@@ -23,6 +23,7 @@ class AlignmentType(Enum):
     LOCAL_SHIFT = "local_shift"
     LARGE_SHIFT = "large_shift"
     NO_MATCH = "no_match"
+    LOW_CONFIDENCE = "low_confidence"
 
 @dataclass
 class AlignmentResult:
@@ -60,7 +61,8 @@ class ImageAligner:
             local_search_radius: int = 20,
             large_search_radius: int = 50,
             tier1_similarity_threshold: float = 0.95,
-            tier2_similarity_threshold: float = 0.90
+            tier2_similarity_threshold: float = 0.90,
+            entropy_threshold: float = 4.0
     ):
         """
         Initializes the ImageAligner with specified search radii and similarity thresholds.
@@ -76,6 +78,7 @@ class ImageAligner:
         self.large_search_radius = large_search_radius
         self.tier1_similarity_threshold = tier1_similarity_threshold
         self.tier2_similarity_threshold = tier2_similarity_threshold
+        self.entropy_threshold = entropy_threshold
         self.segmentor = ImageSegmentor()
         self.preprocessor = Preprocessor()
 
@@ -304,6 +307,17 @@ class ImageAligner:
             aligned data, alignment type, search level, and confidence. If no alignment is found, the result
             indicates no match.
         """
+        # Check for low entropy (blank/solid color segments)
+        if baseline_segment.entropy < self.entropy_threshold:
+            return AlignmentResult(
+                shift=(0, 0),
+                similarity_score=0.0,
+                aligned_data=None,
+                alignment_type=AlignmentType.LOW_CONFIDENCE,
+                search_level=0,
+                confidence=0.0
+            )
+
         baseline_data = self.segmentor.extract_segment_data(baseline_image, baseline_segment)
         result = self._search_tier1(test_image, baseline_segment, baseline_data)
         if result:

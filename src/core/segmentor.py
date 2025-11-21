@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple
 import numpy as np
+import cv2
 
 @dataclass
 class Segment:
@@ -23,6 +24,9 @@ class Segment:
     height: int
     bbox: Tuple[int, int, int, int]
     data: np.ndarray = None
+    entropy: float = 0.0
+    variance: float = 0.0
+
 
 
 class ImageSegmentor:
@@ -51,6 +55,58 @@ class ImageSegmentor:
         """Helper to calculate segments for a single dimension."""
         remaining = dimension - self.segment_size
         return 1 + int(np.ceil(remaining / self.stride)) if remaining > 0 else 1
+
+    def calculate_entropy(self, image_data: np.ndarray) -> float:
+        """
+        Calculate the Shannon entropy of the image segment.
+        
+        Args:
+            image_data: Input image segment (gray or color)
+            
+        Returns:
+            float: Entropy value (higher means more information)
+        """
+        if image_data is None or image_data.size == 0:
+            return 0.0
+            
+        # Convert to grayscale if needed for entropy calculation
+        if image_data.ndim == 3:
+            gray = cv2.cvtColor(image_data, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image_data
+            
+        # Calculate histogram
+        hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
+        
+        # Normalize histogram
+        hist_norm = hist.ravel() / hist.sum()
+        
+        # Filter non-zero values
+        hist_norm = hist_norm[hist_norm > 0]
+        
+        # Calculate entropy
+        entropy = -np.sum(hist_norm * np.log2(hist_norm))
+        return float(entropy)
+
+    def calculate_variance(self, image_data: np.ndarray) -> float:
+        """
+        Calculate the variance of the image segment (measure of contrast).
+        
+        Args:
+            image_data: Input image segment
+            
+        Returns:
+            float: Variance value
+        """
+        if image_data is None or image_data.size == 0:
+            return 0.0
+            
+        if image_data.ndim == 3:
+            gray = cv2.cvtColor(image_data, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image_data
+            
+        return float(np.var(gray))
 
     def calculate_grid(self, image_height: int, image_width: int) -> Tuple[int, int]:
         """
@@ -89,7 +145,7 @@ class ImageSegmentor:
         """
         # Determine image dimensions and extract height and width
         if image.ndim == 3:
-            im_height, im_width, _ = image.shape[:2]
+            im_height, im_width = image.shape[:2]
         else:
             im_height, im_width = image.shape
 
@@ -111,6 +167,15 @@ class ImageSegmentor:
                 # Define bounding box as (x1, y1, x2, y2)
                 bbox = (x, y, x + seg_width, y + seg_height)
 
+                # Extract data for metric calculation
+                # Note: We extract data here temporarily to calculate metrics, 
+                # but we don't store it in the segment unless requested to save memory
+                temp_data = self.extract_segment_data(image, 
+                    Segment("", x, y, seg_width, seg_height, bbox))
+                
+                entropy = self.calculate_entropy(temp_data)
+                variance = self.calculate_variance(temp_data)
+
                 # Create Segment object with metadata
                 each_segment = Segment(
                     segment_id = f"seg_r{row}_c{col}",
@@ -119,7 +184,9 @@ class ImageSegmentor:
                     width = seg_width,
                     height = seg_height,
                     bbox = bbox,
-                    data = None
+                    data = None,
+                    entropy = entropy,
+                    variance = variance
                 )
 
                 # Append segment metadata to list
