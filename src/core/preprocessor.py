@@ -86,7 +86,7 @@ class Preprocessor:
         Raises:
             ValueError: If the image does not have 2D or 3D dimensions.
         """
-        if not image.ndim in [2, 3]:
+        if image.ndim not in [2, 3]:
             raise ValueError(f"The image '{image_name}' should be either 2D or 3D.")
 
     def _validate_size_constraints(self, image: np.ndarray, image_name: str) -> None:
