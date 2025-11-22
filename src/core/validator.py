@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Tuple, Dict
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
-from aligner import AlignmentResult, AlignmentType
+from .aligner import AlignmentResult, AlignmentType
 
 
 class ValidationResult(BaseModel):

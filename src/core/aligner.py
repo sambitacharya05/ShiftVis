@@ -12,8 +12,8 @@ from typing import Tuple, Optional
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
-from segmentor import Segment, ImageSegmentor
-from preprocessor import Preprocessor
+from .segmentor import Segment, ImageSegmentor
+from .preprocessor import Preprocessor
 
 
 class AlignmentType(str, Enum):
