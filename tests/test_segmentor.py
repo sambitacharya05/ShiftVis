@@ -21,21 +21,21 @@ class TestSegmentCalculation:
     def test_grid_calculation_512x512(self):
         """Test 512x512 image creates 3x3 grid."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        num_rows, num_cols = segmenter.calculate_grid(512, 512)
+        num_rows, num_cols = segmenter._calculate_grid(512, 512)
         assert num_rows == 3
         assert num_cols == 3
     
     def test_grid_calculation_1000x800(self):
         """Test 1000x800 image grid."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        num_rows, num_cols = segmenter.calculate_grid(800, 1000)
+        num_rows, num_cols = segmenter._calculate_grid(800, 1000)
         assert num_rows == 4
         assert num_cols == 5
     
     def test_grid_calculation_small_image(self):
         """Test image smaller than segment size."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        num_rows, num_cols = segmenter.calculate_grid(200, 200)
+        num_rows, num_cols = segmenter._calculate_grid(200, 200)
         assert num_rows == 1
         assert num_cols == 1
     
@@ -43,14 +43,14 @@ class TestSegmentCalculation:
         """Test error handling for invalid dimensions."""
         segmenter = ImageSegmentor()
         with pytest.raises(ValueError):
-            segmenter.calculate_grid(0, 512)
+            segmenter._calculate_grid(0, 512)
         with pytest.raises(ValueError):
-            segmenter.calculate_grid(512, -10)
+            segmenter._calculate_grid(512, -10)
     
     def test_grid_calculation_no_overlap(self):
         """Test grid calculation with 0% overlap."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.0)
-        num_rows, num_cols = segmenter.calculate_grid(512, 512)
+        num_rows, num_cols = segmenter._calculate_grid(512, 512)
         assert num_rows == 2
         assert num_cols == 2
 
@@ -168,7 +168,7 @@ class TestExtractSegmentData:
     def test_extract_correct_shape(self):
         """Test extracted data has correct shape."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        image = np.random.rand(512, 512, 3)
+        image = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
         segments = segmenter.segment_image(image)
         
         data = segmenter.extract_segment_data(image, segments[0])
@@ -203,7 +203,7 @@ class TestExtractSegmentData:
     def test_extract_partial_segment(self):
         """Test extraction of partial edge segment."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        image = np.random.rand(512, 512, 3)
+        image = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
         segments = segmenter.segment_image(image)
         
         # Extract edge segment (partial width)
@@ -213,7 +213,7 @@ class TestExtractSegmentData:
     def test_extract_corner_segment(self):
         """Test extraction of corner segment (both dimensions partial)."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        image = np.random.rand(512, 512, 3)
+        image = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
         segments = segmenter.segment_image(image)
         
         # Extract corner segment
@@ -223,7 +223,7 @@ class TestExtractSegmentData:
     def test_extract_grayscale(self):
         """Test extraction works with grayscale images."""
         segmenter = ImageSegmentor(segment_size=256, overlap_percentage=0.10)
-        image = np.random.rand(512, 512)
+        image = np.random.randint(0, 255, (512, 512), dtype=np.uint8)
         segments = segmenter.segment_image(image)
         
         data = segmenter.extract_segment_data(image, segments[0])
@@ -369,7 +369,7 @@ class TestEdgeCases:
         image = np.zeros((300, 800, 3), dtype=np.uint8)
         segments = segmenter.segment_image(image)
         
-        num_rows, num_cols = segmenter.calculate_grid(300, 800)
+        num_rows, num_cols = segmenter._calculate_grid(300, 800)
         assert len(segments) == num_rows * num_cols
     
     def test_very_small_image(self):

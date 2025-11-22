@@ -471,6 +471,10 @@ class ImageAligner:
         # Search in local radius
         for dy in range(-self.local_search_radius, self.local_search_radius + 1):
             for dx in range(-self.local_search_radius, self.local_search_radius + 1):
+                # Check bounds before creating segment to avoid Pydantic validation error
+                if baseline_segment.x + dx < 0 or baseline_segment.y + dy < 0:
+                    continue
+
                 # Create shifted segment (Pydantic validates)
                 shifted_segment = self._create_shifted_segment(baseline_segment, dx, dy)
                 
@@ -551,6 +555,10 @@ class ImageAligner:
         # Search in large radius
         for dy in range(-self.large_search_radius, self.large_search_radius + 1):
             for dx in range(-self.large_search_radius, self.large_search_radius + 1):
+                # Check bounds before creating segment to avoid Pydantic validation error
+                if baseline_segment.x + dx < 0 or baseline_segment.y + dy < 0:
+                    continue
+
                 # Create shifted segment (Pydantic validates)
                 shifted_segment = self._create_shifted_segment(baseline_segment, dx, dy)
                 

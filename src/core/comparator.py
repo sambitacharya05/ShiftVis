@@ -4,8 +4,8 @@ import numpy as np
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 from .segmentor import Segment
-from aligner import AlignmentResult, AlignmentType
-from validator import ValidationResult
+from .aligner import AlignmentResult, AlignmentType
+from .validator import ValidationResult
 
 
 class ChangeType(str, Enum):
