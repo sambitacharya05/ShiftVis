@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator, ConfigD
 
 from .segmentor import Segment, ImageSegmentor
 from .preprocessor import Preprocessor
+from .config import settings
 
 
 class AlignmentType(str, Enum):
@@ -261,33 +262,22 @@ class ImageAligner:
     3. Filters out low-quality segments (low entropy/variance)
     
     Attributes:
-        local_search_radius: Radius for local alignment searches (pixels)
-        large_search_radius: Radius for larger alignment searches (pixels)
-        tier1_similarity_threshold: Threshold for exact/near-exact matches
-        tier2_similarity_threshold: Threshold for approximate matches
-        entropy_threshold: Minimum entropy for segment to be considered informative
-        variance_threshold: Minimum variance for segment to be considered informative
-        segmentor: ImageSegmentor instance for extracting segment data
-        preprocessor: Preprocessor instance for image preprocessing
-        
-    Examples:
-        >>> aligner = ImageAligner(
-        ...     local_search_radius=20,
-        ...     large_search_radius=50,
-        ...     tier1_similarity_threshold=0.95
-        ... )
-        >>> result = aligner.find_best_alignment(test_img, segment, baseline_img)
-        >>> print(f"Shift: {result.shift}, Score: {result.similarity_score}")
+        local_search_radius (int): Radius for local search (tier 1)
+        large_search_radius (int): Radius for large search (tier 2)
+        tier1_similarity_threshold (float): SSIM threshold for tier 1 acceptance
+        tier2_similarity_threshold (float): SSIM threshold for tier 2 acceptance
+        entropy_threshold (float): Minimum entropy to consider a segment valid
+        variance_threshold (float): Minimum variance to consider a segment valid
     """
     
     def __init__(
         self,
-        local_search_radius: int = 20,
-        large_search_radius: int = 50,
-        tier1_similarity_threshold: float = 0.98,
-        tier2_similarity_threshold: float = 0.92,
-        entropy_threshold: float = 1.0,
-        variance_threshold: float = 25.0
+        local_search_radius: int = settings.ALIGNER_LOCAL_SEARCH_RADIUS,
+        large_search_radius: int = settings.ALIGNER_LARGE_SEARCH_RADIUS,
+        tier1_similarity_threshold: float = settings.ALIGNER_TIER1_THRESHOLD,
+        tier2_similarity_threshold: float = settings.ALIGNER_TIER2_THRESHOLD,
+        entropy_threshold: float = settings.ALIGNER_ENTROPY_THRESHOLD,
+        variance_threshold: float = settings.ALIGNER_VARIANCE_THRESHOLD
     ):
         """
         Initialize ImageAligner with search parameters.

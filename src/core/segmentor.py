@@ -359,10 +359,12 @@ class Segment(BaseModel):
         return data
 
 
+from .config import settings
+
 class ImageSegmentor:
     """A class to handle segmentation of images into overlapping tiles."""
     
-    def __init__(self, segment_size: int = 256, overlap_percentage: float = 0.10):
+    def __init__(self, segment_size: int = settings.SEGMENT_SIZE, overlap_percentage: float = settings.SEGMENT_OVERLAP_PERCENTAGE):
         """
         Initialize the Segmentor with specified segment size and overlap settings.
 

@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 
+from .config import settings
+
 class Preprocessor:
     """
     A class for preprocessing images, including validation, normalization, and resizing.
@@ -14,10 +16,10 @@ class Preprocessor:
 
     def __init__(
             self,
-            target_color_mode: str = "BGR",
-            min_dim: int = 256,
-            max_dim: int = 10000,
-            allow_resize: bool = True
+            target_color_mode: str = settings.PREPROCESSOR_TARGET_COLOR_MODE,
+            min_dim: int = settings.PREPROCESSOR_MIN_DIM,
+            max_dim: int = settings.PREPROCESSOR_MAX_DIM,
+            allow_resize: bool = settings.PREPROCESSOR_ALLOW_RESIZE
     ):
         """
         Initializes the Preprocessor with specified parameters.

@@ -3,6 +3,7 @@ from typing import List, Tuple, Dict
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 from .aligner import AlignmentResult, AlignmentType
+from .config import settings
 
 
 class ValidationResult(BaseModel):
@@ -263,23 +264,15 @@ class ConsistencyValidator:
     Uses robust statistical methods (median, MAD) to handle outliers gracefully.
     
     Attributes:
-        outlier_threshold: Z-score threshold for detecting outliers (default 1.0)
-        consistency_threshold: Minimum consistency score to consider field consistent (default 0.7)
-        
-    Examples:
-        >>> validator = ConsistencyValidator(outlier_threshold=1.5)
-        >>> results = [alignment1, alignment2, ...]  # List of AlignmentResult
-        >>> validation = validator.validate_vector_field(results)
-        >>> if validation.is_consistent:
-        ...     print(f"Global shift: {validation.dominant_shift}")
-        ... else:
-        ...     print(f"Inconsistent field: {validation.outlier_count} outliers")
+    Attributes:
+        outlier_threshold (float): Threshold for MAD-based outlier detection
+        consistency_threshold (float): Minimum consistency score (0-1) to consider valid
     """
     
     def __init__(
         self,
-        outlier_threshold: float = 1.0,
-        consistency_threshold: float = 0.7
+        outlier_threshold: float = settings.VALIDATOR_OUTLIER_THRESHOLD,
+        consistency_threshold: float = settings.VALIDATOR_CONSISTENCY_THRESHOLD
     ):
         """
         Initialize the consistency validator.

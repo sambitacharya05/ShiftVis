@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator, ConfigD
 from .segmentor import Segment
 from .aligner import AlignmentResult, AlignmentType
 from .validator import ValidationResult
+from .config import settings
 
 
 class ChangeType(str, Enum):
@@ -206,12 +207,13 @@ class SegmentComparisonResult(BaseModel):
         
         return self
     
-    def is_significant(self, threshold: float = 0.2) -> bool:
+
+    def is_significant(self, threshold: float = settings.COMPARATOR_SIGNIFICANCE_THRESHOLD) -> bool:
         """
         Check if changes exceed significance threshold.
         
         Args:
-            threshold: Minimum diff_percentage to consider significant (default 0.2%)
+            threshold: Minimum diff_percentage to consider significant (default from settings)
             
         Returns:
             bool: True if changes are significant
@@ -435,24 +437,24 @@ class DocumentComparisonResult(BaseModel):
         """Get segments of a specific change type."""
         return [seg for seg in self.segment_results if seg.change_type == change_type]
     
-    def is_mostly_identical(self, threshold: float = 0.95) -> bool:
+    def is_mostly_identical(self, threshold: float = settings.COMPARATOR_MATCH_THRESHOLD) -> bool:
         """
         Check if documents are mostly identical.
         
         Args:
-            threshold: Minimum similarity score (default 95%)
+            threshold: Minimum similarity score (default from settings)
             
         Returns:
             bool: True if similarity exceeds threshold
         """
         return self.overall_similarity >= threshold
     
-    def has_significant_changes(self, threshold: float = 1.0) -> bool:
+    def has_significant_changes(self, threshold: float = settings.COMPARATOR_CHANGE_THRESHOLD) -> bool:
         """
         Check if document has significant changes.
         
         Args:
-            threshold: Minimum change_percentage (default 1%)
+            threshold: Minimum change_percentage (default from settings)
             
         Returns:
             bool: True if changes exceed threshold
