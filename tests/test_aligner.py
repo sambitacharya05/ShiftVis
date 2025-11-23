@@ -33,7 +33,7 @@ class TestAligner:
         with pytest.raises(ValueError, match="local_search_radius must be positive"):
             ImageAligner(local_search_radius=0)
             
-        with pytest.raises(ValueError, match="large_search_radius .* must be >"):
+        with pytest.raises(ValueError, match=r"large_search_radius .* must be >"):
             ImageAligner(local_search_radius=20, large_search_radius=20)
             
         with pytest.raises(ValueError, match="tier1_similarity_threshold must be 0-1"):

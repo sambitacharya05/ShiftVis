@@ -44,12 +44,16 @@ class TestCoreIntegration:
             has_changes = not alignment.is_good_match()
             change_type = ChangeType.NONE if not has_changes else ChangeType.VISUAL_CHANGE
             
+            # Ensure diff values match has_changes state
+            diff_percentage = 0.5 if has_changes else 0.0
+            diff_pixel_count = 10 if has_changes else 0
+            
             seg_res = SegmentComparisonResult(
                 segment_id=seg.segment_id,
                 has_changes=has_changes,
                 change_type=change_type,
-                diff_percentage=0.0,
-                diff_pixel_count=0,
+                diff_percentage=diff_percentage,
+                diff_pixel_count=diff_pixel_count,
                 alignment_info=alignment,
                 baseline_segment=seg
             )

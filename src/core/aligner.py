@@ -1,13 +1,5 @@
-"""
-Image alignment module for ShiftVis.
-
-Provides alignment algorithms to find shifted segments between baseline and test images,
-using multi-tier search strategies and similarity metrics.
-"""
-
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
-import cv2
 from typing import Tuple, Optional
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
@@ -45,12 +37,14 @@ class AlignmentResult(BaseModel):
     and metadata about the alignment quality and search process.
     
     Attributes:
+        min_exact_match_similarity: Minimum similarity for EXACT_MATCH validation (default 0.95)
         shift: The (dx, dy) pixel shift required to align the images
         similarity_score: SSIM similarity score between aligned images (0-1)
         aligned_data: The aligned image data as NumPy array (optional for memory)
         alignment_type: Classification of alignment quality/type
         search_level: Level of search performed (1=local, 2=large, 0=skipped)
         confidence: Confidence level of alignment (0-1, typically same as similarity_score)
+        segment_id: Optional segment identifier for tracking and validation
         
     Examples:
         >>> result = AlignmentResult(
@@ -58,7 +52,8 @@ class AlignmentResult(BaseModel):
         ...     similarity_score=0.95,
         ...     alignment_type=AlignmentType.LOCAL_SHIFT,
         ...     search_level=1,
-        ...     confidence=0.95
+        ...     confidence=0.95,
+        ...     segment_id="seg_r0_c0"
         ... )
         >>> result.is_good_match()
         True
@@ -69,6 +64,16 @@ class AlignmentResult(BaseModel):
         arbitrary_types_allowed=True,
         validate_assignment=True,
         frozen=False
+    )
+    
+    # Class-level configuration for validation thresholds
+    # Can be overridden by setting AlignmentResult.min_exact_match_similarity
+    # or by passing as a field when constructing instances
+    min_exact_match_similarity: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="Minimum similarity threshold for EXACT_MATCH validation"
     )
     
     shift: Tuple[int, int] = Field(
@@ -108,6 +113,11 @@ class AlignmentResult(BaseModel):
         description="Confidence level of alignment result (0-1)"
     )
     
+    segment_id: Optional[str] = Field(
+        None,
+        description="Optional segment identifier for tracking outliers and mapping results back to segments"
+    )
+    
     @field_validator('shift')
     @classmethod
     def validate_shift_reasonable(cls, v: Tuple[int, int]) -> Tuple[int, int]:
@@ -143,9 +153,12 @@ class AlignmentResult(BaseModel):
                 raise ValueError(
                     f"EXACT_MATCH alignment must have shift=(0, 0), got {self.shift}"
                 )
-            if self.similarity_score < 0.95:
+            # Use instance-level or class-level threshold for validation
+            min_similarity = getattr(self, 'min_exact_match_similarity', 0.95)
+            if self.similarity_score < min_similarity:
                 raise ValueError(
-                    f"EXACT_MATCH should have high similarity (>0.95), got {self.similarity_score}"
+                    f"EXACT_MATCH should have high similarity (>={min_similarity}), "
+                    f"got {self.similarity_score}"
                 )
         
         # NO_MATCH should have low/zero confidence
@@ -508,7 +521,8 @@ class ImageAligner:
                 aligned_data=best_data,
                 alignment_type=alignment_type,
                 search_level=1,
-                confidence=confidence
+                confidence=confidence,
+                min_exact_match_similarity=self.tier1_similarity_threshold
             )
         
         return None
@@ -587,7 +601,8 @@ class ImageAligner:
                 aligned_data=best_data,
                 alignment_type=alignment_type,
                 search_level=2,
-                confidence=confidence
+                confidence=confidence,
+                min_exact_match_similarity=self.tier1_similarity_threshold
             )
         
         return None
@@ -632,7 +647,8 @@ class ImageAligner:
                 aligned_data=None,
                 alignment_type=AlignmentType.LOW_CONFIDENCE,
                 search_level=0,
-                confidence=0.0
+                confidence=0.0,
+                min_exact_match_similarity=self.tier1_similarity_threshold
             )
         
         # Extract baseline segment data
@@ -655,7 +671,8 @@ class ImageAligner:
             aligned_data=baseline_data,
             alignment_type=AlignmentType.NO_MATCH,
             search_level=2,
-            confidence=0.0
+            confidence=0.0,
+            min_exact_match_similarity=self.tier1_similarity_threshold
         )
 
 
@@ -698,7 +715,7 @@ if __name__ == "__main__":
             search_level=1,
             confidence=0.98
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught error: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -712,7 +729,7 @@ if __name__ == "__main__":
             search_level=2,
             confidence=0.5
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught large shift: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -844,6 +861,6 @@ if __name__ == "__main__":
     
     end_time = time()
     print("\n" + "=" * 70)
-    print(f"✅ All Pydantic alignment tests passed!")
+    print("✅ All Pydantic alignment tests passed!")
     print(f"Total time: {end_time - start_time:.2f} seconds")
     print("=" * 70)

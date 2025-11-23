@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, Tuple, Any
 from enum import Enum
 import numpy as np
-from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 from .segmentor import Segment
 from .aligner import AlignmentResult, AlignmentType
@@ -184,19 +184,35 @@ class SegmentComparisonResult(BaseModel):
     
     @model_validator(mode='after')
     def validate_consistency(self) -> 'SegmentComparisonResult':
-        """Validate logical consistency between fields."""
-        # Check has_changes consistency with change_type
-        if self.has_changes and self.change_type == ChangeType.NONE:
+        """
+        Validate logical consistency between fields.
+        
+        Enforces strict mapping between has_changes and allowed ChangeType values:
+        - has_changes=False: Only NONE or SKIPPED allowed
+        - has_changes=True: Only VISUAL_CHANGE, POSITION_SHIFT, or NO_MATCH allowed
+        """
+        # Define allowed change types for each has_changes state
+        ALLOWED_WHEN_NO_CHANGES = {ChangeType.NONE, ChangeType.SKIPPED}
+        ALLOWED_WHEN_HAS_CHANGES = {
+            ChangeType.VISUAL_CHANGE,
+            ChangeType.POSITION_SHIFT,
+            ChangeType.NO_MATCH
+        }
+        
+        # Validate has_changes=False constraints
+        if not self.has_changes and self.change_type not in ALLOWED_WHEN_NO_CHANGES:
             raise ValueError(
-                "Inconsistent state: has_changes=True but change_type=NONE"
+                f"Inconsistent state: has_changes=False but change_type={self.change_type.value}. "
+                f"When has_changes=False, change_type must be one of: "
+                f"{', '.join(ct.value for ct in ALLOWED_WHEN_NO_CHANGES)}"
             )
         
-        if not self.has_changes and self.change_type in [
-            ChangeType.VISUAL_CHANGE,
-            ChangeType.NO_MATCH
-        ]:
+        # Validate has_changes=True constraints
+        if self.has_changes and self.change_type not in ALLOWED_WHEN_HAS_CHANGES:
             raise ValueError(
-                f"Inconsistent state: has_changes=False but change_type={self.change_type}"
+                f"Inconsistent state: has_changes=True but change_type={self.change_type.value}. "
+                f"When has_changes=True, change_type must be one of: "
+                f"{', '.join(ct.value for ct in ALLOWED_WHEN_HAS_CHANGES)}"
             )
         
         # Validate diff_percentage vs diff_pixel_count consistency
@@ -628,7 +644,7 @@ if __name__ == "__main__":
             x=100, y=200, width=50, height=30, 
             confidence=0.95, label="Text change"
         )
-        print(f"✅ Valid BoundingBox created")
+        print("✅ Valid BoundingBox created")
         print(f"   Area: {bbox.area()} pixels")
         print(f"   Center: {bbox.center()}")
     except Exception as e:
@@ -688,7 +704,7 @@ if __name__ == "__main__":
     print("=" * 70)
     
     json_data = seg_result.to_dict_serializable()
-    print(f"✅ Serialized to dict")
+    print("✅ Serialized to dict")
     print(f"   Keys: {list(json_data.keys())}")
     print(f"   Change summary: {json_data['change_summary']}")
     print(f"   Change density: {json_data['change_density']:.2f}")

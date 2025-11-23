@@ -7,11 +7,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables or .env file.
+    
+    Environment variables are case-insensitive for flexibility:
+    - PREPROCESSOR_TARGET_COLOR_MODE (uppercase - recommended)
+    - preprocessor_target_color_mode (lowercase - also works)
+    - Preprocessor_Target_Color_Mode (mixed case - also works)
     """
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,  # Allow case-insensitive env var lookups
         extra="ignore"
     )
 

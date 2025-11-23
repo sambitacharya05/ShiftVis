@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
+from .config import settings
+
 
 class Segment(BaseModel):
     """
@@ -359,8 +361,6 @@ class Segment(BaseModel):
         return data
 
 
-from .config import settings
-
 class ImageSegmentor:
     """A class to handle segmentation of images into overlapping tiles."""
     
@@ -378,11 +378,39 @@ class ImageSegmentor:
             overlap_percentage (float): The percentage of overlap between segments.
             overlap_pixels (int): The number of overlapping pixels calculated from segment_size and overlap_percentage.
             stride (int): The step size between consecutive segments, calculated as segment_size minus overlap_pixels.
+        
+        Raises:
+            ValueError: If segment_size is not positive or overlap_percentage is not in [0.0, 1.0).
         """
+        # Validate segment_size
+        if not isinstance(segment_size, int) or segment_size <= 0:
+            raise ValueError(
+                f"segment_size must be a positive integer, got: {segment_size}"
+            )
+        
+        # Validate overlap_percentage
+        if not isinstance(overlap_percentage, (int, float)):
+            raise ValueError(
+                f"overlap_percentage must be a number, got type: {type(overlap_percentage).__name__}"
+            )
+        
+        if overlap_percentage < 0.0 or overlap_percentage >= 1.0:
+            raise ValueError(
+                f"overlap_percentage must be in [0.0, 1.0), got: {overlap_percentage}"
+            )
+        
         self.segment_size = segment_size
         self.overlap_percentage = overlap_percentage
         self.overlap_pixels = int(segment_size * overlap_percentage)
         self.stride = segment_size - self.overlap_pixels
+        
+        # Validate computed stride is positive
+        if self.stride <= 0:
+            raise ValueError(
+                f"Computed stride must be positive. "
+                f"segment_size={segment_size}, overlap_percentage={overlap_percentage} "
+                f"resulted in stride={self.stride}"
+            )
 
     def _calculate_segments_for_dimension(self, dimension: int) -> int:
         """Helper to calculate segments for a single dimension."""
@@ -590,7 +618,7 @@ if __name__ == "__main__":
             height=256,
             bbox=(0, 0, 256, 256)
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught error: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -604,7 +632,7 @@ if __name__ == "__main__":
             width=256, height=256,
             bbox=(999, 999, 1000, 1000)  # ❌ Doesn't match x, y, width, height!
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught bbox inconsistency: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -618,7 +646,7 @@ if __name__ == "__main__":
             width=256, height=256,
             bbox=(0, 0, 256, 256)
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught invalid segment_id: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -633,7 +661,7 @@ if __name__ == "__main__":
             bbox=(0, 0, 256, 256),
             entropy=999.0  # ❌ Impossible value (max is 8 for 8-bit images)!
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught invalid entropy: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -757,7 +785,7 @@ if __name__ == "__main__":
             print(f"✓ Saved visualization to: {output_path}")
 
             # Display segment details (first 5)
-            print(f"\n=== First 5 Segments (Pydantic-validated) ===")
+            print("\n=== First 5 Segments (Pydantic-validated) ===")
             for segment in segments[:5]:
                 print(f"{segment.segment_id}:")
                 print(f"  Position: ({segment.x}, {segment.y})")
@@ -769,7 +797,7 @@ if __name__ == "__main__":
                 print(f"  Center: {segment.center()}")
 
             # Test extract_segment_data on first segment
-            print(f"\n=== Testing extract_segment_data ===")
+            print("\n=== Testing extract_segment_data ===")
             first_seg = segments[0]
             seg_data = segmentor.extract_segment_data(image, first_seg)
             print(f"✓ Extracted {first_seg.segment_id}: shape={seg_data.shape}")

@@ -1,7 +1,10 @@
+import logging
 import numpy as np
 import cv2
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 class Preprocessor:
     """
@@ -79,17 +82,27 @@ class Preprocessor:
 
     def _validate_dimensions(self, image: np.ndarray, image_name: str) -> None:
         """
-        Validates that the image has valid dimensions (2D or 3D).
+        Validates that the image has valid dimensions (2D or 3D) and supported channel counts.
 
         Args:
             image (np.ndarray): The input image as a NumPy array.
             image_name (str): The name of the image (used for error messages).
 
         Raises:
-            ValueError: If the image does not have 2D or 3D dimensions.
+            ValueError: If the image does not have 2D or 3D dimensions, or has unsupported channel count.
         """
         if image.ndim not in [2, 3]:
             raise ValueError(f"The image '{image_name}' should be either 2D or 3D.")
+        
+        # For 3D images, enforce supported channel counts (1 or 3 channels only)
+        if image.ndim == 3:
+            channels = image.shape[2]
+            if channels not in [1, 3]:
+                raise ValueError(
+                    f"The image '{image_name}' has {channels} channels. "
+                    f"Only grayscale (1 channel) or BGR (3 channels) images are supported. "
+                    f"If this is an RGBA image, please convert it to BGR before processing."
+                )
 
     def _validate_size_constraints(self, image: np.ndarray, image_name: str) -> None:
         """
@@ -235,7 +248,10 @@ class Preprocessor:
         # Resize test to match baseline
         test = cv2.resize(test, (bl_w, bl_h), interpolation=interpolation)
 
-        print(f"⚠️  Resized test image from {t_h}x{t_w} to {bl_h}x{bl_w} to match baseline.")
+        logger.warning(
+            "Resized test image from %dx%d to %dx%d to match baseline",
+            t_h, t_w, bl_h, bl_w
+        )
 
         return baseline, test
 
@@ -360,7 +376,7 @@ if __name__ == "__main__":
     print("\n=== Test 8: Image Info Utility ===")
     img = np.ones((512, 768, 3), dtype=np.uint8)
     info = preprocessor.get_image_info(img)
-    print(f"✓ Image info:")
+    print("✓ Image info:")
     for key, value in info.items():
         print(f"  - {key}: {value}")
 

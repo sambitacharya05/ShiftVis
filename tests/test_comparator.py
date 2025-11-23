@@ -30,10 +30,10 @@ class TestComparatorStructures:
 
     def test_bounding_box_validation(self):
         """Test BoundingBox validation."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"Input should be greater than or equal to 0"):
             BoundingBox(x=-10, y=20, width=100, height=50, confidence=0.9)
         
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"Input should be greater than 0"):
             BoundingBox(x=10, y=20, width=0, height=50, confidence=0.9)
 
     def test_segment_comparison_result(self):

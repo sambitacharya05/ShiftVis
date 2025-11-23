@@ -311,11 +311,18 @@ class ConsistencyValidator:
         - NO_MATCH segments (no alignment found)
         - LOW_CONFIDENCE segments (blank/uniform regions)
         
+        Note:
+            If AlignmentResult.segment_id is None, a synthetic ID (seg_0, seg_1, ...)
+            will be generated. For reliable outlier tracking, ensure AlignmentResult
+            objects are populated with segment_id upstream (e.g., in the aligner).
+        
         Args:
             results: List of AlignmentResult objects (Pydantic models)
             
         Returns:
             Tuple of (valid_shifts, segment_ids)
+            - valid_shifts: List of (dx, dy) tuples for valid alignments
+            - segment_ids: Corresponding segment identifiers (real or synthetic)
             
         Examples:
             >>> validator = ConsistencyValidator()
@@ -325,14 +332,15 @@ class ConsistencyValidator:
         valid_shifts = []
         segment_ids = []
         
-        for r in results:
+        for idx, r in enumerate(results):
             if r.alignment_type not in [AlignmentType.NO_MATCH, AlignmentType.LOW_CONFIDENCE]:
                 valid_shifts.append(r.shift)
-                # Try to extract segment_id if available (from metadata or associated segment)
-                segment_id = getattr(r, 'segment_id', None)
-                if segment_id:
-                    segment_ids.append(segment_id)
+                
+                # Use segment_id from AlignmentResult if available, otherwise generate synthetic ID
+                if r.segment_id is not None:
+                    segment_ids.append(r.segment_id)
                 else:
+                    # Generate synthetic ID with warning in docstring
                     segment_ids.append(f"seg_{len(segment_ids)}")
         
         return valid_shifts, segment_ids
@@ -554,7 +562,7 @@ if __name__ == "__main__":
             total_segments=30,
             valid_segments=28
         )
-        print(f"✅ Valid result created")
+        print("✅ Valid result created")
         print(f"   Consistency: {result.consistency_score * 100:.1f}%")
         print(f"   Outlier percentage: {result.get_outlier_percentage():.2f}%")
         print(f"   Shift magnitude: {result.get_shift_magnitude():.2f}px")
@@ -572,7 +580,7 @@ if __name__ == "__main__":
             total_segments=30,
             valid_segments=28
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught error: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -587,7 +595,7 @@ if __name__ == "__main__":
             total_segments=30,
             valid_segments=28
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught inconsistency: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -603,7 +611,7 @@ if __name__ == "__main__":
             valid_segments=28,
             outlier_ids=["seg_r1_c1"]  # ❌ Only 1 ID but outlier_count=2
         )
-        print(f"❌ Should have failed validation!")
+        print("❌ Should have failed validation!")
     except Exception as e:
         print(f"✅ Validation caught mismatch: {type(e).__name__}")
         print(f"   Message: {str(e)[:80]}...")
@@ -657,7 +665,7 @@ if __name__ == "__main__":
     print(f"✓ Is highly consistent: {validation.is_highly_consistent()}")
     
     if validation.shift_statistics:
-        print(f"✓ Shift statistics:")
+        print("✓ Shift statistics:")
         for key, value in validation.shift_statistics.items():
             print(f"   - {key}: {value}")
     
@@ -728,7 +736,7 @@ if __name__ == "__main__":
     # Test 6: to_dict_serializable
     data = result.to_dict_serializable()
     print(f"✓ Serializable dict keys: {list(data.keys())}")
-    print(f"   Computed fields:")
+    print("   Computed fields:")
     print(f"   - outlier_percentage: {data['outlier_percentage']:.2f}%")
     print(f"   - inlier_percentage: {data['inlier_percentage']:.2f}%")
     print(f"   - shift_magnitude: {data['shift_magnitude']:.2f}px")

@@ -42,9 +42,9 @@ class TestSegmentCalculation:
     def test_grid_calculation_invalid_dimensions(self):
         """Test error handling for invalid dimensions."""
         segmenter = ImageSegmentor()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"Image dimensions must be positive"):
             segmenter._calculate_grid(0, 512)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"Image dimensions must be positive"):
             segmenter._calculate_grid(512, -10)
     
     def test_grid_calculation_no_overlap(self):

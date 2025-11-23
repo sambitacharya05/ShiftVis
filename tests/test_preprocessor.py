@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 import cv2
 from src.core.preprocessor import Preprocessor
+from src.core.config import settings
 
 class TestPreprocessor:
     """Tests for Preprocessor class."""
@@ -14,10 +15,10 @@ class TestPreprocessor:
         """Test default and custom initialization."""
         # Default
         prep = Preprocessor()
-        assert prep.target_color_mode == "BGR"
-        assert prep.min_dim == 256
-        assert prep.max_dim == 10000
-        assert prep.allow_resize is True
+        assert prep.target_color_mode == settings.PREPROCESSOR_TARGET_COLOR_MODE
+        assert prep.min_dim == settings.PREPROCESSOR_MIN_DIM
+        assert prep.max_dim == settings.PREPROCESSOR_MAX_DIM
+        assert prep.allow_resize == settings.PREPROCESSOR_ALLOW_RESIZE
 
         # Custom
         prep = Preprocessor(
