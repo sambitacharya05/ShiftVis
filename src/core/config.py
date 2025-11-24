@@ -48,12 +48,12 @@ class Settings(BaseSettings):
     VALIDATOR_OUTLIER_THRESHOLD: float = 1.0
     VALIDATOR_CONSISTENCY_THRESHOLD: float = 0.7
 
-    # Comparator Settings (tuned to ignore rendering artifacts in screenshots)
-    COMPARATOR_PIXEL_DIFF_THRESHOLD: float = 0.314  # 80/255 - ignore anti-aliasing & rendering diffs
-    COMPARATOR_MIN_CHANGE_PIXELS: int = 1000  # Require 1000+ changed pixels (real content change)
-    COMPARATOR_MIN_CHANGE_PERCENTAGE: float = 0.5  # 0.5% of segment must change
-    COMPARATOR_MIN_CONTOUR_AREA: int = 100  # Increased from 50 to filter small noise
-    COMPARATOR_MORPHOLOGY_KERNEL_SIZE: int = 9  # Larger kernel to remove scattered artifacts
+    # Comparator Settings (balanced for small real changes vs artifacts)
+    COMPARATOR_PIXEL_DIFF_THRESHOLD: float = 0.40  # 64/255 - detect real changes, some artifacts
+    COMPARATOR_MIN_CHANGE_PIXELS: int = 150  # Very low to catch 1-2 character changes (~200px)
+    COMPARATOR_MIN_CHANGE_PERCENTAGE: float = 0.35  # 0.35% of segment must change
+    COMPARATOR_MIN_CONTOUR_AREA: int = 55  # Reduced to catch smaller text
+    COMPARATOR_MORPHOLOGY_KERNEL_SIZE: int = 9  # Medium kernel for noise removal
     COMPARATOR_MERGE_DISTANCE: int = 10
     COMPARATOR_CHANGE_CLASSIFICATION_DELTA: float = 0.1
     COMPARATOR_SIGNIFICANCE_THRESHOLD: float = 0.2

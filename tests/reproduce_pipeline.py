@@ -21,8 +21,8 @@ def test_pipeline():
     comparator = ImageComparator()
     project_root = Path.cwd()
     base_dir = project_root / "data" / "test-docs" / "integration test"
-    baseline_path = base_dir / "bl.png"
-    test_path = base_dir / "test.png"
+    baseline_path = base_dir / "bl_jp.png"
+    test_path = base_dir / "test_jp.png"
     output_dir = base_dir / "output"
 
     # Ensure output dir exists

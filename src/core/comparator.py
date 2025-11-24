@@ -363,6 +363,14 @@ class SegmentComparisonResult(BaseModel):
             "diff_pixel_count": self.diff_pixel_count
         }
         
+        # Add alignment info if available
+        if self.alignment_info:
+            metadata.update({
+                "shift": self.alignment_info.shift,
+                "alignment_type": self.alignment_info.alignment_type.value,
+                "similarity_score": self.alignment_info.similarity_score
+            })
+        
         path = storage_manager.save_diff_map(
             page_workspace,
             self.segment_id,
@@ -708,6 +716,7 @@ class ImageComparator:
 
         self.pixel_diff_threshold = settings.COMPARATOR_PIXEL_DIFF_THRESHOLD
         self.min_change_pixels = settings.COMPARATOR_MIN_CHANGE_PIXELS
+        self.min_change_percentage = settings.COMPARATOR_MIN_CHANGE_PERCENTAGE
         self.min_contour_area = settings.COMPARATOR_MIN_CONTOUR_AREA
         self.morphology_kernel_size = settings.COMPARATOR_MORPHOLOGY_KERNEL_SIZE
         self.merge_distance = settings.COMPARATOR_MERGE_DISTANCE
@@ -939,20 +948,27 @@ class ImageComparator:
         shift_magnitude = np.sqrt(shift[0]**2 + shift[1]**2)
 
         # High similarity with minimal/no shift → no change
+        # BUT only if diff percentage is truly negligible (below our threshold)
         if similarity_score >= self.aligner.tier1_similarity_threshold and shift_magnitude <= 2:
-            if diff_percentage < 1.0:
+            if diff_percentage < self.min_change_percentage:
                 return ChangeType.NONE
         
         # POSITION_SHIFT: Content moved but structurally similar
         # Case 1: Explicit LARGE_SHIFT type with good tier-2 similarity
         if (alignment_result.alignment_type == AlignmentType.LARGE_SHIFT and
             similarity_score >= self.aligner.tier2_similarity_threshold):
-            return ChangeType.POSITION_SHIFT
+            # Only classify as position shift if remaining diffs are small
+            if diff_percentage < self.min_change_percentage:
+                return ChangeType.POSITION_SHIFT
+            return ChangeType.VISUAL_CHANGE
         
         # Case 2: Significant shift with good tier-2 similarity (implicit position shift)
         if (similarity_score >= self.aligner.tier2_similarity_threshold and 
             shift_magnitude > 5):
-            return ChangeType.POSITION_SHIFT
+            # Only classify as position shift if remaining diffs are small
+            if diff_percentage < self.min_change_percentage:
+                return ChangeType.POSITION_SHIFT
+            return ChangeType.VISUAL_CHANGE
         
         # Default: visual change
         return ChangeType.VISUAL_CHANGE
@@ -973,11 +989,13 @@ class ImageComparator:
             List of BoundingBox objects in global image coordinates
         """
         # Apply morphological closing to connect nearby changes
-        kernel = cv2.getStructuringElement(
-            cv2.MORPH_RECT,
-            (self.morphology_kernel_size, self.morphology_kernel_size)
-        )
+        kernel_size = settings.COMPARATOR_MORPHOLOGY_KERNEL_SIZE
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
         closed = cv2.morphologyEx(diff_map, cv2.MORPH_CLOSE, kernel)
+        
+        # NEW: Apply density filter to remove scattered artifacts
+        # Reduced threshold from 0.3 to 0.15 to catch small real changes (e.g., 2 characters)
+        closed = self._filter_scattered_artifacts(closed, min_density=0.15)
         
         # Find contours
         contours, _ = cv2.findContours(
@@ -1013,6 +1031,44 @@ class ImageComparator:
             bboxes.append(bbox)
         
         return bboxes
+    
+    def _filter_scattered_artifacts(self, diff_map: np.ndarray, min_density: float = 0.3) -> np.ndarray:
+        """
+        Remove scattered changes with low density (likely font anti-aliasing artifacts).
+        
+        Args:
+            diff_map: Binary diff map
+            min_density: Minimum pixel density (changed_pixels / bbox_area) to keep a region
+            
+        Returns:
+            Filtered diff map with scattered artifacts removed
+        """
+        # Find contours
+        contours, _ = cv2.findContours(diff_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        filtered = np.zeros_like(diff_map)
+        for contour in contours:
+            # Get bounding box
+            x, y, w, h = cv2.boundingRect(contour)
+            
+            # Skip if bounding box is invalid
+            if w == 0 or h == 0:
+                continue
+            
+            # Extract ROI
+            roi = diff_map[y:y+h, x:x+w]
+            
+            # Calculate density: changed_pixels / total_pixels in bounding box
+            changed_pixels = np.sum(roi > 0)
+            total_pixels = w * h
+            density = changed_pixels / total_pixels
+            
+            # Keep only dense regions (real text/content changes)
+            # Low density = scattered pixels = likely anti-aliasing artifacts
+            if density >= min_density:
+                cv2.drawContours(filtered, [contour], -1, 255, -1)
+        
+        return filtered
     
     def _compare_segments(
             self,

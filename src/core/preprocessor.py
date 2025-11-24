@@ -166,7 +166,7 @@ class Preprocessor:
             np.ndarray: The blurred image.
         """
         # Light blur: 3x3 kernel with sigma=1.0
-        # Larger kernels or sigma would blur too much and lose real changes
+        # Balance between artifact smoothing and preserving real small changes
         return cv2.GaussianBlur(image, (3, 3), sigmaX=1.0, sigmaY=1.0)
 
     def _normalize_dtype(self, image: np.ndarray) -> np.ndarray:

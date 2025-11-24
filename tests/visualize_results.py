@@ -29,8 +29,8 @@ def create_visualization(base_dir: Path):
     """Create visualization of detected differences."""
     
     # Paths
-    baseline_path = base_dir / "bl.png"
-    test_path = base_dir / "test.png"
+    baseline_path = base_dir / "bl_jp.png"
+    test_path = base_dir / "test_jp.png"
     
     # Find latest comparison results
     latest_result = sorted(Path("data/results").glob("*/comparison_*/page_001"))[-1]
@@ -72,12 +72,24 @@ def create_visualization(base_dir: Path):
         index = json.load(f)
     
     segments = index['segments']
+    
     print(f"\nProcessing {len(segments)} diff maps...")
     
     changes_found = 0
+    segments_with_changes = 0
     
-    # Process each diff map
+    # Process each diff map - check if it actually has changes
     for seg_id, seg_info in segments.items():
+        # Load diff map to check if it has actual content
+        diff_file = diffmaps_dir / seg_info['filename']
+        diff_map_test = load_diff_map(diff_file)
+        
+        # Skip if diff map is empty (no real changes)
+        if not np.any(diff_map_test > 0):
+            continue
+        
+        segments_with_changes += 1
+            
         # Parse segment ID to get position (e.g., "seg_r0_c0" -> row 0, col 0)
         parts = seg_id.split('_')
         row = int(parts[1][1:])  # Remove 'r' prefix
@@ -109,29 +121,53 @@ def create_visualization(base_dir: Path):
         if np.any(diff_map > 0):
             changes_found += 1
             
-            # Highlight only the exact changed pixels in neon pink
-            # Neon pink: (B=255, G=20, R=255) - bright magenta/pink
-            neon_pink = np.array([255, 20, 255], dtype=np.uint8)
+            # Load metadata to get change type
+            metadata = seg_info.get('metadata', {})
+            change_type = metadata.get('change_type', 'unknown')
+            
+            # Color-code by change type:
+            # Red = Content change (text content different)
+            # Orange = Position shift (text moved)  
+            # Note: If change_type is 'none', these are artifacts that passed morphology
+            # but failed the final thresholds - treat as position artifacts (orange)
+            
+            if change_type in ['CONTENT_CHANGE', 'content_change']:
+                # Red: (B=0, G=0, R=255)
+                color = np.array([0, 0, 255], dtype=np.uint8)
+                color_name = "RED (content change)"
+            elif change_type in ['POSITION_SHIFT', 'position_shift', 'LOCAL_SHIFT', 'local_shift']:
+                # Orange: (B=0, G=165, R=255)
+                color = np.array([0, 165, 255], dtype=np.uint8)
+                color_name = "ORANGE (position shift)"
+            elif change_type == 'none':
+                # These are filtered artifacts - show as light gray to indicate low confidence
+                # Light gray: (B=200, G=200, R=200)
+                color = np.array([200, 200, 200], dtype=np.uint8)
+                color_name = "GRAY (filtered artifact)"
+            else:
+                # Default: Assume position shift for any unknown or edge cases
+                color = np.array([0, 165, 255], dtype=np.uint8)
+                color_name = f"ORANGE (default: {change_type})"
             
             # Create mask for changed pixels
             changed_mask = diff_map > 0
             
-            # Apply neon pink to changed pixels with blending
+            # Apply color to changed pixels with blending
             alpha = 0.6  # 60% opacity for the highlight
             
-            # Blend neon pink with baseline image at changed pixel locations
+            # Blend color with baseline image at changed pixel locations
             for c in range(3):  # For each color channel
                 baseline_overlay[y:y_end, x:x_end][changed_mask, c] = (
                     baseline_overlay[y:y_end, x:x_end][changed_mask, c] * (1 - alpha) +
-                    neon_pink[c] * alpha
+                    color[c] * alpha
                 ).astype(np.uint8)
                 
                 test_overlay[y:y_end, x:x_end][changed_mask, c] = (
                     test_overlay[y:y_end, x:x_end][changed_mask, c] * (1 - alpha) +
-                    neon_pink[c] * alpha
+                    color[c] * alpha
                 ).astype(np.uint8)
     
-    print(f"\n✅ Found changes in {changes_found} segments")
+    print(f"\n✅ Found changes in {changes_found} diff regions across {segments_with_changes} segments")
     
     # Add labels
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -159,8 +195,10 @@ def create_visualization(base_dir: Path):
     print(f"  Original baseline: {output_dir / 'baseline.png'}")
     print(f"  Original test: {output_dir / 'test.png'}")
     print(f"  Side-by-side comparison: {comparison_path}")
-    print(f"\n✨ Done! Neon pink highlights show exact changed pixels.")
-    print(f"   Yellow boxes show segments with changes.")
+    print(f"\n✨ Done! Color-coded highlights:")
+    print(f"   🔴 RED = Content changes (text modified)")
+    print(f"   🟠 ORANGE = Position shifts (text moved)")
+    print(f"   ⚪ GRAY = Filtered artifacts (low confidence)")
 
 if __name__ == "__main__":
     base_dir = Path("data/test-docs/integration test")
