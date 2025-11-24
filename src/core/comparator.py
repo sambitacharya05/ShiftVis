@@ -770,7 +770,7 @@ class ImageComparator:
         logger.debug("ImageComparator Initialized")
         logger.debug("=" * 70)
         logger.debug(f"Segment size: {self.segmentor.segment_size}px")
-        logger.debug(f"Segment overlap: {self.segmentor.overlap}px ({settings.SEGMENT_OVERLAP_PERCENTAGE*100:.0f}%)")
+        logger.debug(f"Segment overlap: {self.segmentor.overlap_pixels}px ({settings.SEGMENT_OVERLAP_PERCENTAGE*100:.0f}%)")
         logger.debug(f"Tier-1 threshold: {self.aligner.tier1_similarity_threshold}")
         logger.debug(f"Tier-2 threshold: {self.aligner.tier2_similarity_threshold}")
         logger.debug(f"Pixel diff threshold: {self.pixel_diff_threshold:.4f}")
@@ -815,7 +815,7 @@ class ImageComparator:
         return {
             "segmentation": {
                 "segment_size": self.segmentor.segment_size,
-                "overlap_pixels": self.segmentor.overlap,
+                "overlap_pixels": self.segmentor.overlap_pixels,
                 "overlap_percentage": settings.SEGMENT_OVERLAP_PERCENTAGE
             },
             "alignment": {
@@ -1013,7 +1013,8 @@ class ImageComparator:
     def _compare_segments(
             self,
             baseline_segments: List[Segment],
-            alignment_results: List[AlignmentResult]
+            alignment_results: List[AlignmentResult],
+            baseline_image: np.ndarray
     ) -> List[SegmentComparisonResult]:
         """
         Compare all aligned segments and generate comparison results.
@@ -1021,6 +1022,7 @@ class ImageComparator:
         Args:
             baseline_segments: List of baseline segments
             alignment_results: List of alignment results (parallel to baseline_segments)
+            baseline_image: Full baseline image for extracting segment data
             
         Returns:
             List of SegmentComparisonResult objects
@@ -1030,9 +1032,7 @@ class ImageComparator:
         for baseline_seg, alignment_result in zip(baseline_segments, alignment_results):
             try:
                 # Extract baseline data
-                if baseline_seg.data is None:
-                    raise ValueError(f"Baseline segment {baseline_seg.segment_id} has no data")
-                baseline_data = baseline_seg.data
+                baseline_data = self.segmentor.extract_segment_data(baseline_image, baseline_seg)
                 
                 # Extract test data from alignment result
                 if alignment_result.aligned_data is None:
@@ -1111,7 +1111,8 @@ class ImageComparator:
     def _align_all_segments(
             self,
             baseline_segments: List[Segment],
-            test_image: np.ndarray
+            test_image: np.ndarray,
+            baseline_image: np.ndarray
     ) -> List[AlignmentResult]:
         """
         Align all baseline segments with the test image.
@@ -1119,22 +1120,25 @@ class ImageComparator:
         Args:
             baseline_segments: List of segments from baseline image
             test_image: Full test image
+            baseline_image: Full baseline image (needed for extracting segment data)
             
         Returns:
             List of AlignmentResult objects
         """
         alignment_results = []
         
-        for segment in baseline_segments:
-            if segment.data is None:
-                raise ValueError(f"Segment {segment.segment_id} has no data")
-            
+        for i, segment in enumerate(baseline_segments):
             # Perform alignment
-            alignment_result = self.aligner.align_segment(
+            alignment_result = self.aligner.find_best_alignment(
+                test_image=test_image,
                 baseline_segment=segment,
-                test_image=test_image
+                baseline_image=baseline_image
             )
             alignment_results.append(alignment_result)
+            
+            if self.debug_mode and (i + 1) % 5 == 0:
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Aligned segment {i + 1}/{len(baseline_segments)}")
         
         return alignment_results
     
@@ -1326,7 +1330,7 @@ class ImageComparator:
         
         # Phase 5-6: Alignment
         self._start_timer("alignment")
-        alignment_results = self._align_all_segments(baseline_segments, test_image)
+        alignment_results = self._align_all_segments(baseline_segments, test_image, baseline_image)
         if self.debug_mode:
             logger.debug(f"Aligned {len(alignment_results)} segments")
         self._end_timer("alignment")
@@ -1343,7 +1347,7 @@ class ImageComparator:
         
         # Phase 8-10: Comparison
         self._start_timer("comparison")
-        segment_results = self._compare_segments(baseline_segments, alignment_results)
+        segment_results = self._compare_segments(baseline_segments, alignment_results, baseline_image)
         if self.debug_mode:
             changes = sum(1 for r in segment_results if r.has_changes)
             logger.debug(f"Comparison: {changes}/{len(segment_results)} segments with changes")
@@ -1378,9 +1382,11 @@ class ImageComparator:
 
 if __name__ == "__main__":
     comparator = ImageComparator()
-    seg1 = np.zeros((256, 256, 3), dtype=np.uint8)
-    seg2 = seg1.copy()
-    seg2[100:150, 100:150] = 255  # White square
-
-    diff_map, count, pct = comparator._calculate_pixel_diff(seg1, seg2)
-    print(f"Changed: {count} pixels ({pct:.2f}%)")
+    bl = cv2.imread("data/test-docs/integration test/baseline_text shift.png")
+    test = cv2.imread("data/test-docs/integration test/test_text shift.png")
+    result = comparator.compare_documents(bl, test)
+    str = result.get_detailed_statistics()
+    file = "data/test-docs/integration test/output/integration_test.json"
+    file.mkdir(parents=True, exist_ok=True)
+    jsonObj = result.save_to_file(filepath=file)
+    
