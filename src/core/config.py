@@ -38,18 +38,24 @@ class Settings(BaseSettings):
     ALIGNER_ENTROPY_THRESHOLD: float = 1.0
     ALIGNER_VARIANCE_THRESHOLD: float = 25.0
 
+    # Aligner Performance Settings (balanced for Japanese character detection + speed)
+    ALIGNER_ENABLE_FAST_MODE: bool = True
+    ALIGNER_GRID_STEP: int = 2  # 2 = 4x speedup, still detects single char changes
+    ALIGNER_SSIM_WIN_SIZE: int = 3  # 5 = balanced (3=fastest, 7=most accurate)
+    ALIGNER_EARLY_TERM_ON_THRESHOLD: bool = True  # Stop when threshold met
+
     # Validator Settings
     VALIDATOR_OUTLIER_THRESHOLD: float = 1.0
     VALIDATOR_CONSISTENCY_THRESHOLD: float = 0.7
 
-    # Comparator Settings
-    COMPARATOR_PIXEL_DIFF_THRESHOLD: float = 0.11764705882352941  # 30/255
-    COMPARATOR_MIN_CHANGE_PIXELS: int = 128
-    COMPARATOR_MIN_CONTOUR_AREA: int = 50
-    COMPARATOR_MORPHOLOGY_KERNEL_SIZE: int = 5
+    # Comparator Settings (tuned to ignore rendering artifacts in screenshots)
+    COMPARATOR_PIXEL_DIFF_THRESHOLD: float = 0.314  # 80/255 - ignore anti-aliasing & rendering diffs
+    COMPARATOR_MIN_CHANGE_PIXELS: int = 1000  # Require 1000+ changed pixels (real content change)
+    COMPARATOR_MIN_CHANGE_PERCENTAGE: float = 0.5  # 0.5% of segment must change
+    COMPARATOR_MIN_CONTOUR_AREA: int = 100  # Increased from 50 to filter small noise
+    COMPARATOR_MORPHOLOGY_KERNEL_SIZE: int = 9  # Larger kernel to remove scattered artifacts
     COMPARATOR_MERGE_DISTANCE: int = 10
     COMPARATOR_CHANGE_CLASSIFICATION_DELTA: float = 0.1
-    # legacy
     COMPARATOR_SIGNIFICANCE_THRESHOLD: float = 0.2
     COMPARATOR_MATCH_THRESHOLD: float = 0.95
     COMPARATOR_CHANGE_THRESHOLD: float = 1.0

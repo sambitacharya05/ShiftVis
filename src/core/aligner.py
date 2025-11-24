@@ -3,10 +3,14 @@ from skimage.metrics import structural_similarity as ssim
 from typing import Tuple, Optional
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+import logging
+import time
 
 from .segmentor import Segment, ImageSegmentor
 from .preprocessor import Preprocessor
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class AlignmentType(str, Enum):
@@ -290,7 +294,11 @@ class ImageAligner:
         tier1_similarity_threshold: float = settings.ALIGNER_TIER1_THRESHOLD,
         tier2_similarity_threshold: float = settings.ALIGNER_TIER2_THRESHOLD,
         entropy_threshold: float = settings.ALIGNER_ENTROPY_THRESHOLD,
-        variance_threshold: float = settings.ALIGNER_VARIANCE_THRESHOLD
+        variance_threshold: float = settings.ALIGNER_VARIANCE_THRESHOLD,
+        # Performance parameters
+        grid_step: int = settings.ALIGNER_GRID_STEP,
+        ssim_win_size: int = settings.ALIGNER_SSIM_WIN_SIZE,
+        early_termination: bool = settings.ALIGNER_EARLY_TERM_ON_THRESHOLD
     ):
         """
         Initialize ImageAligner with search parameters.
@@ -302,6 +310,9 @@ class ImageAligner:
             tier2_similarity_threshold: Threshold for tier-2 matches (default 0.92)
             entropy_threshold: Minimum entropy for informative segments (default 1.0)
             variance_threshold: Minimum variance for informative segments (default 25.0)
+            grid_step: Step size for grid search (1=exhaustive, 2=skip half, default 1)
+            ssim_win_size: SSIM window size (3 or 7, default 7)
+            early_termination: Stop search when threshold met (default True)
             
         Raises:
             ValueError: If parameters are out of valid ranges
@@ -326,6 +337,10 @@ class ImageAligner:
                 f"tier2_threshold ({tier2_similarity_threshold}) should be < "
                 f"tier1_threshold ({tier1_similarity_threshold})"
             )
+        if grid_step < 1:
+            raise ValueError(f"grid_step must be >= 1, got {grid_step}")
+        if ssim_win_size not in [3, 5, 7]:
+            raise ValueError(f"ssim_win_size must be 3, 5, or 7, got {ssim_win_size}")
         
         self.local_search_radius = local_search_radius
         self.large_search_radius = large_search_radius
@@ -333,6 +348,12 @@ class ImageAligner:
         self.tier2_similarity_threshold = tier2_similarity_threshold
         self.entropy_threshold = entropy_threshold
         self.variance_threshold = variance_threshold
+        
+        # Performance settings
+        self.grid_step = grid_step
+        self.ssim_win_size = ssim_win_size
+        self.early_termination = early_termination
+        
         self.segmentor = ImageSegmentor()
         self.preprocessor = Preprocessor()
     
@@ -362,10 +383,10 @@ class ImageAligner:
         try:
             if img1.ndim == 3:
                 # Color image - use channel_axis parameter
-                return float(ssim(img1, img2, channel_axis=2))
+                return float(ssim(img1, img2, channel_axis=2, win_size=self.ssim_win_size))
             else:
                 # Grayscale image
-                return float(ssim(img1, img2))
+                return float(ssim(img1, img2, win_size=self.ssim_win_size))
         except Exception as e:
             print(f"⚠️ Error calculating SSIM: {e}")
             return 0.0
@@ -467,13 +488,24 @@ class ImageAligner:
             >>> if result:
             ...     print(f"Found match at shift {result.shift}")
         """
+        start_time = time.time()
+        search_points = 0
+        
+        logger.debug(
+            f"[TIER-1] Starting local search for {baseline_segment.segment_id} "
+            f"(radius={self.local_search_radius}, step={self.grid_step})"
+        )
+        
         best_score = 0.0
         best_shift = (0, 0)
         best_data = None
         
-        # Search in local radius
-        for dy in range(-self.local_search_radius, self.local_search_radius + 1):
-            for dx in range(-self.local_search_radius, self.local_search_radius + 1):
+        # Early termination threshold
+        early_term_threshold = self.tier1_similarity_threshold if self.early_termination else 0.999
+        
+        # Search in local radius with grid step
+        for dy in range(-self.local_search_radius, self.local_search_radius + 1, self.grid_step):
+            for dx in range(-self.local_search_radius, self.local_search_radius + 1, self.grid_step):
                 # Check bounds before creating segment to avoid Pydantic validation error
                 if baseline_segment.x + dx < 0 or baseline_segment.y + dy < 0:
                     continue
@@ -490,6 +522,7 @@ class ImageAligner:
                 
                 # Calculate similarity
                 score = self._calculate_similarity(baseline_data, segment_data)
+                search_points += 1
                 
                 # Update best match
                 if score > best_score:
@@ -497,12 +530,18 @@ class ImageAligner:
                     best_shift = (dx, dy)
                     best_data = segment_data
                 
-                # Early exit if perfect match found
-                if best_score >= 0.999:
+                # Early exit if threshold met
+                if best_score >= early_term_threshold:
+                    logger.debug(
+                        f"[TIER-1] Early termination at score={best_score:.4f} "
+                        f"(threshold={early_term_threshold:.4f})"
+                    )
                     break
             
-            if best_score >= 0.999:
+            if best_score >= early_term_threshold:
                 break
+        
+        elapsed = time.time() - start_time
         
         # Check if score meets tier-1 threshold
         if best_score >= self.tier1_similarity_threshold:
@@ -513,6 +552,12 @@ class ImageAligner:
                 alignment_type = AlignmentType.LOCAL_SHIFT
             
             confidence = best_score
+            
+            logger.info(
+                f"[TIER-1] ✓ {baseline_segment.segment_id}: {alignment_type.value} "
+                f"shift={best_shift}, score={best_score:.4f}, "
+                f"searched={search_points} points in {elapsed:.3f}s"
+            )
             
             # Return Pydantic-validated result
             return AlignmentResult(
@@ -525,6 +570,11 @@ class ImageAligner:
                 min_exact_match_similarity=self.tier1_similarity_threshold
             )
         
+        logger.debug(
+            f"[TIER-1] ✗ {baseline_segment.segment_id}: No match "
+            f"(best_score={best_score:.4f} < threshold={self.tier1_similarity_threshold:.4f}), "
+            f"searched={search_points} points in {elapsed:.3f}s"
+        )
         return None
     
     def _search_tier2(
@@ -552,13 +602,24 @@ class ImageAligner:
             >>> if result:
             ...     print(f"Found large shift: {result.shift}")
         """
+        start_time = time.time()
+        search_points = 0
+        
+        logger.debug(
+            f"[TIER-2] Starting large search for {baseline_segment.segment_id} "
+            f"(radius={self.large_search_radius}, step={self.grid_step})"
+        )
+        
         best_score = 0.0
         best_shift = (0, 0)
         best_data = None
         
-        # Search in large radius
-        for dy in range(-self.large_search_radius, self.large_search_radius + 1):
-            for dx in range(-self.large_search_radius, self.large_search_radius + 1):
+        # Early termination threshold
+        early_term_threshold = self.tier2_similarity_threshold if self.early_termination else 0.999
+        
+        # Search in large radius with grid step
+        for dy in range(-self.large_search_radius, self.large_search_radius + 1, self.grid_step):
+            for dx in range(-self.large_search_radius, self.large_search_radius + 1, self.grid_step):
                 # Check bounds before creating segment to avoid Pydantic validation error
                 if baseline_segment.x + dx < 0 or baseline_segment.y + dy < 0:
                     continue
@@ -575,6 +636,7 @@ class ImageAligner:
                 
                 # Calculate similarity
                 score = self._calculate_similarity(baseline_data, segment_data)
+                search_points += 1
                 
                 # Update best match
                 if score > best_score:
@@ -582,17 +644,29 @@ class ImageAligner:
                     best_shift = (dx, dy)
                     best_data = segment_data
                 
-                # Early exit if perfect match found
-                if best_score >= 0.999:
+                # Early exit if threshold met
+                if best_score >= early_term_threshold:
+                    logger.debug(
+                        f"[TIER-2] Early termination at score={best_score:.4f} "
+                        f"(threshold={early_term_threshold:.4f})"
+                    )
                     break
             
-            if best_score >= 0.999:
+            if best_score >= early_term_threshold:
                 break
+        
+        elapsed = time.time() - start_time
         
         # Check if score meets tier-2 threshold
         if best_score >= self.tier2_similarity_threshold:
             alignment_type = AlignmentType.LARGE_SHIFT
             confidence = best_score
+            
+            logger.info(
+                f"[TIER-2] ✓ {baseline_segment.segment_id}: {alignment_type.value} "
+                f"shift={best_shift}, score={best_score:.4f}, "
+                f"searched={search_points} points in {elapsed:.3f}s"
+            )
             
             # Return Pydantic-validated result
             return AlignmentResult(
@@ -605,6 +679,11 @@ class ImageAligner:
                 min_exact_match_similarity=self.tier1_similarity_threshold
             )
         
+        logger.warning(
+            f"[TIER-2] ✗ {baseline_segment.segment_id}: NO MATCH FOUND "
+            f"(best_score={best_score:.4f} < threshold={self.tier2_similarity_threshold:.4f}), "
+            f"searched={search_points} points in {elapsed:.3f}s"
+        )
         return None
     
     def find_best_alignment(

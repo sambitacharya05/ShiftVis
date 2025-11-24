@@ -47,7 +47,8 @@ class Preprocessor:
         2. Validates the dimensions of the image.
         3. Validates that the image meets size constraints.
         4. Normalizes the color mode of the image.
-        5. Normalizes the data type of the image.
+        5. Applies light Gaussian blur to reduce rendering artifacts.
+        6. Normalizes the data type of the image.
 
         Args:
             image (np.ndarray): The input image as a NumPy array.
@@ -60,6 +61,7 @@ class Preprocessor:
         self._validate_dimensions(image, image_name)
         self._validate_size_constraints(image, image_name)
         image = self._normalize_color_mode(image)
+        image = self._apply_gaussian_blur(image)  # Smooth out rendering artifacts
         image = self._normalize_dtype(image)
         return image
 
@@ -143,6 +145,29 @@ class Preprocessor:
             elif image.ndim == 2:
                 pass  # Already GRAY
         return image
+
+    def _apply_gaussian_blur(self, image: np.ndarray) -> np.ndarray:
+        """
+        Applies a light Gaussian blur to reduce rendering artifacts.
+        
+        This smooths out:
+        - Font anti-aliasing variations
+        - Screenshot rendering differences  
+        - Small pixel noise
+        
+        While preserving:
+        - Edges and text boundaries
+        - Real content changes
+        
+        Args:
+            image (np.ndarray): The input image as a NumPy array.
+            
+        Returns:
+            np.ndarray: The blurred image.
+        """
+        # Light blur: 3x3 kernel with sigma=1.0
+        # Larger kernels or sigma would blur too much and lose real changes
+        return cv2.GaussianBlur(image, (3, 3), sigmaX=1.0, sigmaY=1.0)
 
     def _normalize_dtype(self, image: np.ndarray) -> np.ndarray:
         """

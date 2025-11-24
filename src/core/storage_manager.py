@@ -168,6 +168,7 @@ class ComparisonStorageManager:
             Relative path to saved diff map file
         """
         diffmaps_dir = page_workspace / "diffMaps"
+        diffmaps_dir.mkdir(parents=True, exist_ok=True) # Ensure directory exists
         
         # Validate diff map
         if diff_map.dtype != np.uint8:

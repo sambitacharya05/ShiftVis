@@ -748,6 +748,10 @@ class ImageComparator:
         self._cache: Dict[str, Any] = {}  # Optional result caching
         self._processing_metadata: Dict[str, Any] = {}  # Current comparison metadata
 
+        # Initialize logger FIRST before using it
+        import logging
+        self.logger = logging.getLogger(__name__)
+
         # output dir
         if self.save_intermediate_results:
             self.intermediate_output_dir.mkdir(parents=True, exist_ok=True)
@@ -762,23 +766,23 @@ class ImageComparator:
     # INTERNAL UTILITIES
     # ============================================================================
     def _log_initialization(self) -> None:
-        """Log initialization configuration for debugging."""
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.debug("=" * 70)
-        logger.debug("ImageComparator Initialized")
-        logger.debug("=" * 70)
-        logger.debug(f"Segment size: {self.segmentor.segment_size}px")
-        logger.debug(f"Segment overlap: {self.segmentor.overlap_pixels}px ({settings.SEGMENT_OVERLAP_PERCENTAGE*100:.0f}%)")
-        logger.debug(f"Tier-1 threshold: {self.aligner.tier1_similarity_threshold}")
-        logger.debug(f"Tier-2 threshold: {self.aligner.tier2_similarity_threshold}")
-        logger.debug(f"Pixel diff threshold: {self.pixel_diff_threshold:.4f}")
-        logger.debug(f"Min change pixels: {self.min_change_pixels}")
-        logger.debug(f"Parallel alignment: {self.enable_parallel_alignment}")
-        logger.debug(f"Parallel comparison: {self.enable_parallel_comparison}")
-        logger.debug(f"Output directory: {self.output_dir}")
-        logger.debug("=" * 70)
+        """Log initialization configuration for debugging."""        
+        self.logger.info("=" * 70)
+        self.logger.info("ImageComparator Initialized")
+        self.logger.info("=" * 70)
+        self.logger.info(f"Segment size: {self.segmentor.segment_size}px")
+        self.logger.info(f"Segment overlap: {self.segmentor.overlap_pixels}px ({settings.SEGMENT_OVERLAP_PERCENTAGE*100:.0f}%)")
+        self.logger.info(f"Tier-1 threshold: {self.aligner.tier1_similarity_threshold}")
+        self.logger.info(f"Tier-2 threshold: {self.aligner.tier2_similarity_threshold}")
+        self.logger.info(f"Pixel diff threshold: {self.pixel_diff_threshold:.4f}")
+        self.logger.info(f"Min change pixels: {self.min_change_pixels}")
+        self.logger.info(f"Grid step: {self.aligner.grid_step}")
+        self.logger.info(f"SSIM window size: {self.aligner.ssim_win_size}")
+        self.logger.info(f"Early termination: {self.aligner.early_termination}")
+        self.logger.info(f"Parallel alignment: {self.enable_parallel_alignment}")
+        self.logger.info(f"Parallel comparison: {self.enable_parallel_comparison}")
+        self.logger.info(f"Output directory: {self.output_dir}")
+        self.logger.info("=" * 70)
     
     def _start_timer(self, phase: str) -> None:
         """Start timing a processing phase."""
@@ -1036,16 +1040,23 @@ class ImageComparator:
                 
                 # Extract test data from alignment result
                 if alignment_result.aligned_data is None:
-                    # No match or low confidence
+                    # No match or low confidence - determine change type first
+                    change_type = (
+                        ChangeType.NO_MATCH 
+                        if alignment_result.alignment_type == AlignmentType.NO_MATCH
+                        else ChangeType.SKIPPED
+                    )
+                    
+                    # SKIPPED (low confidence/blank) = no changes
+                    # NO_MATCH (completely different) = has changes
+                    has_changes = (change_type == ChangeType.NO_MATCH)
+                    
                     result = SegmentComparisonResult(
                         segment_id=baseline_seg.segment_id,
-                        has_changes=True,
-                        change_type=(
-                            ChangeType.NO_MATCH if alignment_result.alignment_type == AlignmentType.NO_MATCH
-                            else ChangeType.SKIPPED
-                        ),
-                        diff_percentage=100.0 if alignment_result.alignment_type == AlignmentType.NO_MATCH else 0.0,
-                        diff_pixel_count=baseline_seg.area() if alignment_result.alignment_type == AlignmentType.NO_MATCH else 0,
+                        has_changes=has_changes,
+                        change_type=change_type,
+                        diff_percentage=100.0 if has_changes else 0.0,
+                        diff_pixel_count=baseline_seg.area() if has_changes else 0,
                         alignment_info=alignment_result,
                         baseline_segment=baseline_seg
                     )
@@ -1126,8 +1137,11 @@ class ImageComparator:
             List of AlignmentResult objects
         """
         alignment_results = []
+        total_segments = len(baseline_segments)
         
-        for i, segment in enumerate(baseline_segments):
+        self.logger.info(f"Starting alignment of {total_segments} segments...")
+        
+        for i, segment in enumerate(baseline_segments, 1):
             # Perform alignment
             alignment_result = self.aligner.find_best_alignment(
                 test_image=test_image,
@@ -1136,10 +1150,11 @@ class ImageComparator:
             )
             alignment_results.append(alignment_result)
             
-            if self.debug_mode and (i + 1) % 5 == 0:
-                logger = logging.getLogger(__name__)
-                logger.debug(f"Aligned segment {i + 1}/{len(baseline_segments)}")
+            # Log progress every 10 segments or at end
+            if i % 10 == 0 or i == total_segments:
+                self.logger.info(f"Aligned {i}/{total_segments} segments ({i/total_segments*100:.0f}%)")
         
+        self.logger.info(f"Alignment complete: {total_segments} segments processed")
         return alignment_results
     
     def _save_comparison_results(
@@ -1162,7 +1177,7 @@ class ImageComparator:
         # Create storage manager
         storage_manager = ComparisonStorageManager(
             output_dir=self.output_dir,
-            compression_enabled=True
+            compression_level=1
         )
         
         # Create document workspace
@@ -1303,12 +1318,15 @@ class ImageComparator:
         start_time = time.time()
         self.reset()
         
-        logger = logging.getLogger(__name__)
-        if self.debug_mode:
-            logger.debug(f"Starting comparison: {baseline_image_path} vs {test_image_path}")
+        self.logger.info("=" * 80)
+        self.logger.info(f"STARTING COMPARISON: {doc_id} (page {page_num})")
+        self.logger.info(f"Baseline: {baseline_image_path}")
+        self.logger.info(f"Test: {test_image_path}")
+        self.logger.info("=" * 80)
         
         # Phase 1-2: Preprocessing
         self._start_timer("preprocessing")
+        self.logger.info("[PHASE 1-2] Loading and preprocessing images...")
         baseline_image = cv2.imread(baseline_image_path)
         test_image = cv2.imread(test_image_path)
         
@@ -1319,50 +1337,61 @@ class ImageComparator:
         
         baseline_image = self.preprocessor.prepare_single_image(baseline_image, "baseline")
         test_image = self.preprocessor.prepare_single_image(test_image, "test")
-        self._end_timer("preprocessing")
+        prep_time = self._end_timer("preprocessing")
+        self.logger.info(f"[PHASE 1-2] ✓ Preprocessing complete in {prep_time:.2f}s")
+        self.logger.info(f"  Image dimensions: {baseline_image.shape[1]}x{baseline_image.shape[0]}")
         
         # Phase 3-4: Segmentation
         self._start_timer("segmentation")
+        self.logger.info("[PHASE 3-4] Segmenting baseline image...")
         baseline_segments = self.segmentor.segment_image(baseline_image)
-        if self.debug_mode:
-            logger.debug(f"Created {len(baseline_segments)} baseline segments")
-        self._end_timer("segmentation")
+        seg_time = self._end_timer("segmentation")
+        self.logger.info(f"[PHASE 3-4] ✓ Segmentation complete in {seg_time:.2f}s")
+        self.logger.info(f"  Created {len(baseline_segments)} segments")
         
         # Phase 5-6: Alignment
         self._start_timer("alignment")
+        self.logger.info(f"[PHASE 5-6] Aligning {len(baseline_segments)} segments...")
         alignment_results = self._align_all_segments(baseline_segments, test_image, baseline_image)
-        if self.debug_mode:
-            logger.debug(f"Aligned {len(alignment_results)} segments")
-        self._end_timer("alignment")
+        align_time = self._end_timer("alignment")
+        self.logger.info(f"[PHASE 5-6] ✓ Alignment complete in {align_time:.2f}s")
+        self.logger.info(f"  Average time per segment: {align_time/len(baseline_segments):.3f}s")
         
         # Phase 7: Validation
         self._start_timer("validation")
-        validation_result = self.validator.validate_alignment_consistency(alignment_results)
-        if self.debug_mode:
-            logger.debug(
-                f"Validation: consistency={validation_result.consistency_score:.2f}, "
-                f"outliers={validation_result.outlier_count}"
-            )
-        self._end_timer("validation")
+        self.logger.info("[PHASE 7] Validating alignment consistency...")
+        validation_result = self.validator.validate_vector_field(alignment_results)
+        val_time = self._end_timer("validation")
+        self.logger.info(f"[PHASE 7] ✓ Validation complete in {val_time:.2f}s")
+        self.logger.info(
+            f"  Consistency: {validation_result.consistency_score:.2%}, "
+            f"Outliers: {validation_result.outlier_count}/{validation_result.valid_segments}"
+        )
         
         # Phase 8-10: Comparison
         self._start_timer("comparison")
+        self.logger.info(f"[PHASE 8-10] Comparing {len(baseline_segments)} segments...")
         segment_results = self._compare_segments(baseline_segments, alignment_results, baseline_image)
-        if self.debug_mode:
-            changes = sum(1 for r in segment_results if r.has_changes)
-            logger.debug(f"Comparison: {changes}/{len(segment_results)} segments with changes")
-        self._end_timer("comparison")
+        comp_time = self._end_timer("comparison")
+        changes = sum(1 for r in segment_results if r.has_changes)
+        self.logger.info(f"[PHASE 8-10] ✓ Comparison complete in {comp_time:.2f}s")
+        self.logger.info(f"  Segments with changes: {changes}/{len(segment_results)}")
         
         # Phase 11: Storage
         self._start_timer("storage")
         if self.save_pixel_masks:
+            self.logger.info("[PHASE 11] Saving comparison results...")
             page_workspace = self._save_comparison_results(segment_results, doc_id, page_num)
-            if self.debug_mode:
-                logger.debug(f"Saved results to: {page_workspace}")
-        self._end_timer("storage")
+            stor_time = self._end_timer("storage")
+            self.logger.info(f"[PHASE 11] ✓ Storage complete in {stor_time:.2f}s")
+            self.logger.info(f"  Saved to: {page_workspace}")
+        else:
+            self._end_timer("storage")
+            self.logger.info("[PHASE 11] Storage skipped (save_pixel_masks=False)")
         
         # Phase 12-15: Aggregation
         self._start_timer("aggregation")
+        self.logger.info("[PHASE 12-15] Aggregating results...")
         total_time = time.time() - start_time
         document_result = self._aggregate_results(
             segment_results,
@@ -1371,12 +1400,18 @@ class ImageComparator:
             baseline_image_path,
             test_image_path
         )
-        self._end_timer("aggregation")
+        agg_time = self._end_timer("aggregation")
         
-        if self.debug_mode:
-            logger.debug(f"Comparison complete in {total_time:.2f}s")
-            logger.debug(f"Overall similarity: {document_result.overall_similarity:.2%}")
-            logger.debug(f"Change percentage: {document_result.change_percentage:.1f}%")
+        self.logger.info("=" * 80)
+        self.logger.info("COMPARISON COMPLETE")
+        self.logger.info(f"Total time: {total_time:.2f}s")
+        self.logger.info(f"Overall similarity: {document_result.overall_similarity:.2%}")
+        self.logger.info(f"Change percentage: {document_result.change_percentage:.1f}%")
+        self.logger.info("=" * 80)
+        self.logger.info("Timing Breakdown:")
+        for phase, duration in self.get_timing_summary().items():
+            self.logger.info(f"  {phase}: {duration:.2f}s ({duration/total_time*100:.1f}%)")
+        self.logger.info("=" * 80)
         
         return document_result
 
