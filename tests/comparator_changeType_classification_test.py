@@ -32,15 +32,28 @@ def create_alignment_result(
     if aligned_data is None and alignment_type != AlignmentType.NO_MATCH:
         aligned_data = np.zeros((256, 256), dtype=np.uint8)
     
+    # Determine search_level from alignment_type
+    if alignment_type == AlignmentType.NO_MATCH or alignment_type == AlignmentType.LOW_CONFIDENCE:
+        search_level = 0
+    elif alignment_type == AlignmentType.LARGE_SHIFT:
+        search_level = 2
+    else:
+        search_level = 1
+    
+    # Fix scores for LOW_CONFIDENCE (validator requires zero)
+    if alignment_type == AlignmentType.LOW_CONFIDENCE:
+        similarity_score = 0.0
+        confidence = 0.0
+    else:
+        confidence = similarity_score
+    
     return AlignmentResult(
         alignment_type=alignment_type,
         similarity_score=similarity_score,
         shift=shift,
-        search_radius_used=search_radius_used,
         aligned_data=aligned_data,
-        # Add any other required fields from your AlignmentResult model
-        # For example, if you have quality_metrics, add:
-        # quality_metrics={}
+        search_level=search_level,
+        confidence=confidence
     )
 
 
@@ -369,7 +382,9 @@ class TestChangeClassificationIntegration:
         print(f"  Classification: {change_type.value}")
         
         assert change_type == ChangeType.VISUAL_CHANGE
-        assert pct > 5.0
+        # 50x50 square = 2500 pixels, out of 256×256 = 65536 total pixels
+        # Expected: 2500/65536 * 100 = 3.81%
+        assert pct > 3.5  # Changed from 5.0 to match actual calculation
 
 
 class TestParameterValidation:

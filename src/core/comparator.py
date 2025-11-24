@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 import cv2
+import logging
 
 from .segmentor import Segment, ImageSegmentor
 from .aligner import AlignmentResult, AlignmentType, ImageAligner
@@ -853,17 +854,40 @@ class ImageComparator:
             baseline_segment: np.ndarray,
             test_segment: np.ndarray
     ) -> Tuple[np.ndarray, int, float]:
+        """
+        Calculate pixel-level differences between two segments.
         
-        abs_diff = cv2.absdiff(baseline_segment, test_segment)
+        Converts to grayscale for diff calculation (preprocessor outputs BGR by default).
+        
+        Args:
+            baseline_segment: Reference segment data
+            test_segment: Test segment data to compare
+            
+        Returns:
+            Tuple of (diff_map, changed_pixel_count, diff_percentage)
+        """
+        # Convert BGR to grayscale for difference calculation
+        # Preprocessor outputs BGR by default (see preprocessor.py line 142)
+        if baseline_segment.ndim == 3:
+            baseline_gray = cv2.cvtColor(baseline_segment, cv2.COLOR_BGR2GRAY)
+            test_gray = cv2.cvtColor(test_segment, cv2.COLOR_BGR2GRAY)
+        else:
+            baseline_gray = baseline_segment
+            test_gray = test_segment
+        
+        # Calculate absolute difference
+        abs_diff = cv2.absdiff(baseline_gray, test_gray)
 
-        threashold_value = int(self.pixel_diff_threshold * 255)
+        # Apply threshold to get binary diff map
+        threshold_value = int(self.pixel_diff_threshold * 255)
         _, diff_map = cv2.threshold(
             abs_diff,
-            threashold_value,
+            threshold_value,
             255,
             cv2.THRESH_BINARY
         )
 
+        # Calculate statistics
         changed_pixel_count = np.count_nonzero(diff_map)
         total_pixels = diff_map.size
         diff_percentage = (changed_pixel_count / total_pixels) * 100.0 if total_pixels > 0 else 0.0
@@ -876,12 +900,33 @@ class ImageComparator:
             diff_percentage: float,
             diff_pixel_count: int
     ) -> ChangeType:
+        """
+        Classify the type of change detected between segments.
+        
+        Decision logic:
+        1. NO_MATCH/LOW_CONFIDENCE → return early
+        2. Below min_change_pixels → NONE
+        3. High similarity (tier1) + minimal shift → NONE
+        4. LARGE_SHIFT type + high similarity (tier2) → POSITION_SHIFT
+        5. Large shift magnitude + high similarity (tier2) → POSITION_SHIFT  
+        6. Everything else → VISUAL_CHANGE
+        
+        Args:
+            alignment_result: Result from alignment
+            diff_percentage: Percentage of pixels that differ
+            diff_pixel_count: Absolute count of changed pixels
+            
+        Returns:
+            ChangeType classification
+        """
+        # Handle no match or low confidence
         if alignment_result.alignment_type == AlignmentType.NO_MATCH:
             return ChangeType.NO_MATCH
         
         if alignment_result.alignment_type == AlignmentType.LOW_CONFIDENCE:
             return ChangeType.SKIPPED
         
+        # Below minimum threshold → no change
         if diff_pixel_count < self.min_change_pixels:
             return ChangeType.NONE
         
@@ -889,28 +934,447 @@ class ImageComparator:
         shift = alignment_result.shift
         shift_magnitude = np.sqrt(shift[0]**2 + shift[1]**2)
 
+        # High similarity with minimal/no shift → no change
         if similarity_score >= self.aligner.tier1_similarity_threshold and shift_magnitude <= 2:
             if diff_percentage < 1.0:
                 return ChangeType.NONE
-            
-        if (similarity_score >= self.aligner.tier2_similarity_threshold and 
-            shift_magnitude > 5 and
-            diff_percentage > 2.0):
-            return ChangeType.POSITION_SHIFT
         
+        # POSITION_SHIFT: Content moved but structurally similar
+        # Case 1: Explicit LARGE_SHIFT type with good tier-2 similarity
         if (alignment_result.alignment_type == AlignmentType.LARGE_SHIFT and
-            similarity_score >= self.aligner.tier2_similarity_threshold and
-            diff_percentage > 3.0):
+            similarity_score >= self.aligner.tier2_similarity_threshold):
             return ChangeType.POSITION_SHIFT
         
-        return ChangeType.VISUAL_CHANGE
+        # Case 2: Significant shift with good tier-2 similarity (implicit position shift)
+        if (similarity_score >= self.aligner.tier2_similarity_threshold and 
+            shift_magnitude > 5):
+            return ChangeType.POSITION_SHIFT
         
+        # Default: visual change
+        return ChangeType.VISUAL_CHANGE
+    
+    def _detect_change_regions(
+            self,
+            diff_map: np.ndarray,
+            segment: Segment
+    ) -> List[BoundingBox]:
+        """
+        Detect bounding boxes around changed regions using morphological operations.
+        
+        Args:
+            diff_map: Binary mask of changed pixels
+            segment: The segment being analyzed (for global coordinate conversion)
+            
+        Returns:
+            List of BoundingBox objects in global image coordinates
+        """
+        # Apply morphological closing to connect nearby changes
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT,
+            (self.morphology_kernel_size, self.morphology_kernel_size)
+        )
+        closed = cv2.morphologyEx(diff_map, cv2.MORPH_CLOSE, kernel)
+        
+        # Find contours
+        contours, _ = cv2.findContours(
+            closed,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE
+        )
+        
+        # Convert contours to bounding boxes
+        bboxes = []
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area < self.min_contour_area:
+                continue
+            
+            x, y, w, h = cv2.boundingRect(contour)
+            
+            # Convert to global coordinates
+            global_x = segment.x + x
+            global_y = segment.y + y
+            
+            # Calculate confidence based on area
+            confidence = min(1.0, area / (w * h) if (w * h) > 0 else 0.0)
+            
+            bbox = BoundingBox(
+                x=global_x,
+                y=global_y,
+                width=w,
+                height=h,
+                confidence=confidence,
+                label=f"change_{segment.segment_id}"
+            )
+            bboxes.append(bbox)
+        
+        return bboxes
     
     def _compare_segments(
             self,
-            aligned_segments: List[Tuple[Segment, AlignmentResult]]
+            baseline_segments: List[Segment],
+            alignment_results: List[AlignmentResult]
     ) -> List[SegmentComparisonResult]:
-        pass
+        """
+        Compare all aligned segments and generate comparison results.
+        
+        Args:
+            baseline_segments: List of baseline segments
+            alignment_results: List of alignment results (parallel to baseline_segments)
+            
+        Returns:
+            List of SegmentComparisonResult objects
+        """
+        results = []
+        
+        for baseline_seg, alignment_result in zip(baseline_segments, alignment_results):
+            try:
+                # Extract baseline data
+                if baseline_seg.data is None:
+                    raise ValueError(f"Baseline segment {baseline_seg.segment_id} has no data")
+                baseline_data = baseline_seg.data
+                
+                # Extract test data from alignment result
+                if alignment_result.aligned_data is None:
+                    # No match or low confidence
+                    result = SegmentComparisonResult(
+                        segment_id=baseline_seg.segment_id,
+                        has_changes=True,
+                        change_type=(
+                            ChangeType.NO_MATCH if alignment_result.alignment_type == AlignmentType.NO_MATCH
+                            else ChangeType.SKIPPED
+                        ),
+                        diff_percentage=100.0 if alignment_result.alignment_type == AlignmentType.NO_MATCH else 0.0,
+                        diff_pixel_count=baseline_seg.area() if alignment_result.alignment_type == AlignmentType.NO_MATCH else 0,
+                        alignment_info=alignment_result,
+                        baseline_segment=baseline_seg
+                    )
+                    results.append(result)
+                    continue
+                
+                test_data = alignment_result.aligned_data
+                
+                # Calculate pixel differences
+                diff_map, diff_pixel_count, diff_percentage = self._calculate_pixel_diff(
+                    baseline_data,
+                    test_data
+                )
+                
+                # Detect change regions
+                change_regions = self._detect_change_regions(diff_map, baseline_seg)
+                
+                # Classify change type
+                change_type = self._classify_change_type(
+                    alignment_result,
+                    diff_percentage,
+                    diff_pixel_count
+                )
+                
+                # Create result
+                result = SegmentComparisonResult(
+                    segment_id=baseline_seg.segment_id,
+                    has_changes=(change_type not in [ChangeType.NONE, ChangeType.SKIPPED]),
+                    change_type=change_type,
+                    pixel_diff_map=diff_map,
+                    diff_percentage=diff_percentage,
+                    diff_pixel_count=diff_pixel_count,
+                    change_regions=change_regions,
+                    alignment_info=alignment_result,
+                    baseline_segment=baseline_seg,
+                    metadata={
+                        "similarity_score": alignment_result.similarity_score,
+                        "shift": alignment_result.shift,
+                        "alignment_type": alignment_result.alignment_type.value
+                    }
+                )
+                results.append(result)
+                
+            except Exception as e:
+                # Create error result
+                result = SegmentComparisonResult(
+                    segment_id=baseline_seg.segment_id,
+                    has_changes=False,
+                    change_type=ChangeType.SKIPPED,
+                    diff_percentage=0.0,
+                    diff_pixel_count=0,
+                    baseline_segment=baseline_seg,
+                    metadata={"error": str(e)}
+                )
+                results.append(result)
+                
+                if self.debug_mode:
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error comparing segment {baseline_seg.segment_id}: {e}")
+        
+        return results
+    
+    def _align_all_segments(
+            self,
+            baseline_segments: List[Segment],
+            test_image: np.ndarray
+    ) -> List[AlignmentResult]:
+        """
+        Align all baseline segments with the test image.
+        
+        Args:
+            baseline_segments: List of segments from baseline image
+            test_image: Full test image
+            
+        Returns:
+            List of AlignmentResult objects
+        """
+        alignment_results = []
+        
+        for segment in baseline_segments:
+            if segment.data is None:
+                raise ValueError(f"Segment {segment.segment_id} has no data")
+            
+            # Perform alignment
+            alignment_result = self.aligner.align_segment(
+                baseline_segment=segment,
+                test_image=test_image
+            )
+            alignment_results.append(alignment_result)
+        
+        return alignment_results
+    
+    def _save_comparison_results(
+            self,
+            comparison_results: List[SegmentComparisonResult],
+            doc_id: str,
+            page_num: int
+    ) -> Path:
+        """
+        Save comparison results to workspace using storage manager.
+        
+        Args:
+            comparison_results: List of segment comparison results
+            doc_id: Document identifier
+            page_num: Page number
+            
+        Returns:
+            Path to page workspace directory
+        """
+        # Create storage manager
+        storage_manager = ComparisonStorageManager(
+            output_dir=self.output_dir,
+            compression_enabled=True
+        )
+        
+        # Create document workspace
+        doc_workspace = storage_manager.create_document_workspace(doc_id)
+        
+        # Create page workspace
+        page_workspace = doc_workspace / f"page_{page_num:03d}"
+        page_workspace.mkdir(exist_ok=True)
+        
+        # Save diff maps
+        if self.save_pixel_masks:
+            for result in comparison_results:
+                if result.pixel_diff_map is not None:
+                    result.save_diff_map_to_workspace(storage_manager, page_workspace)
+        
+        return page_workspace
+    
+    def _aggregate_results(
+            self,
+            segment_results: List[SegmentComparisonResult],
+            validation_result: ValidationResult,
+            processing_time: float,
+            baseline_path: str,
+            test_path: str
+    ) -> DocumentComparisonResult:
+        """
+        Aggregate segment results into document-level comparison result.
+        
+        Args:
+            segment_results: List of segment comparison results
+            validation_result: Validation result from consistency check
+            processing_time: Total processing time
+            baseline_path: Path to baseline image
+            test_path: Path to test image
+            
+        Returns:
+            DocumentComparisonResult with aggregated statistics
+        """
+        # Calculate statistics
+        total_segments = len(segment_results)
+        segments_with_changes = sum(1 for r in segment_results if r.has_changes)
+        change_percentage = (segments_with_changes / total_segments * 100.0) if total_segments > 0 else 0.0
+        
+        # Calculate overall similarity
+        similarity_scores = [
+            r.alignment_info.similarity_score 
+            for r in segment_results 
+            if r.alignment_info is not None
+        ]
+        overall_similarity = np.mean(similarity_scores) if similarity_scores else 0.0
+        
+        # Collect all change regions
+        all_change_regions = []
+        for result in segment_results:
+            all_change_regions.extend(result.change_regions)
+        
+        # Prepare visualization data
+        visualization_data = {
+            "heatmap": self._prepare_heatmap_data(segment_results),
+            "change_regions_count": len(all_change_regions),
+            "change_type_distribution": self._calculate_change_distribution(segment_results)
+        }
+        
+        # Create document result
+        result = DocumentComparisonResult(
+            overall_similarity=float(overall_similarity),
+            total_segments=total_segments,
+            segments_with_changes=segments_with_changes,
+            change_percentage=change_percentage,
+            segment_results=segment_results,
+            validation_result=validation_result,
+            global_shift_applied=validation_result.dominant_shift if validation_result.is_consistent else None,
+            merged_change_regions=all_change_regions,
+            visualization_data=visualization_data,
+            processing_time=processing_time,
+            metadata={
+                "baseline_path": baseline_path,
+                "test_path": test_path,
+                "config": self.get_config_summary(),
+                "timing": self.get_timing_summary()
+            }
+        )
+        
+        return result
+    
+    def _prepare_heatmap_data(self, segment_results: List[SegmentComparisonResult]) -> List[Dict[str, Any]]:
+        """Prepare heatmap data for visualization."""
+        heatmap = []
+        for result in segment_results:
+            if result.baseline_segment:
+                heatmap.append({
+                    "x": result.baseline_segment.x,
+                    "y": result.baseline_segment.y,
+                    "width": result.baseline_segment.width,
+                    "height": result.baseline_segment.height,
+                    "intensity": result.diff_percentage,
+                    "change_type": result.change_type.value
+                })
+        return heatmap
+    
+    def _calculate_change_distribution(self, segment_results: List[SegmentComparisonResult]) -> Dict[str, int]:
+        """Calculate distribution of change types."""
+        distribution = {ct.value: 0 for ct in ChangeType}
+        for result in segment_results:
+            distribution[result.change_type.value] += 1
+        return distribution
+    
+    def compare_documents(
+            self,
+            baseline_image_path: str,
+            test_image_path: str,
+            doc_id: str = "comparison",
+            page_num: int = 1
+    ) -> DocumentComparisonResult:
+        """
+        Complete document comparison pipeline.
+        
+        Pipeline phases:
+        1-2: Preprocessing (load and normalize images)
+        3-4: Segmentation (create tiles with overlap)
+        5-6: Alignment (multi-tier search for each segment)
+        7: Validation (consistency check with MAD-based outlier detection)
+        8-10: Comparison (pixel-level diff, contour detection, classification)
+        11: Storage (save compressed diff maps, metadata)
+        12-15: Aggregation (statistics, heatmap data, DocumentComparisonResult)
+        
+        Args:
+            baseline_image_path: Path to baseline/reference image
+            test_image_path: Path to test/comparison image
+            doc_id: Document identifier for workspace organization
+            page_num: Page number for multi-page documents
+            
+        Returns:
+            DocumentComparisonResult with complete analysis
+        """
+        import time
+        
+        start_time = time.time()
+        self.reset()
+        
+        logger = logging.getLogger(__name__)
+        if self.debug_mode:
+            logger.debug(f"Starting comparison: {baseline_image_path} vs {test_image_path}")
+        
+        # Phase 1-2: Preprocessing
+        self._start_timer("preprocessing")
+        baseline_image = cv2.imread(baseline_image_path)
+        test_image = cv2.imread(test_image_path)
+        
+        if baseline_image is None:
+            raise ValueError(f"Could not load baseline image: {baseline_image_path}")
+        if test_image is None:
+            raise ValueError(f"Could not load test image: {test_image_path}")
+        
+        baseline_image = self.preprocessor.prepare_single_image(baseline_image, "baseline")
+        test_image = self.preprocessor.prepare_single_image(test_image, "test")
+        self._end_timer("preprocessing")
+        
+        # Phase 3-4: Segmentation
+        self._start_timer("segmentation")
+        baseline_segments = self.segmentor.segment_image(baseline_image)
+        if self.debug_mode:
+            logger.debug(f"Created {len(baseline_segments)} baseline segments")
+        self._end_timer("segmentation")
+        
+        # Phase 5-6: Alignment
+        self._start_timer("alignment")
+        alignment_results = self._align_all_segments(baseline_segments, test_image)
+        if self.debug_mode:
+            logger.debug(f"Aligned {len(alignment_results)} segments")
+        self._end_timer("alignment")
+        
+        # Phase 7: Validation
+        self._start_timer("validation")
+        validation_result = self.validator.validate_alignment_consistency(alignment_results)
+        if self.debug_mode:
+            logger.debug(
+                f"Validation: consistency={validation_result.consistency_score:.2f}, "
+                f"outliers={validation_result.outlier_count}"
+            )
+        self._end_timer("validation")
+        
+        # Phase 8-10: Comparison
+        self._start_timer("comparison")
+        segment_results = self._compare_segments(baseline_segments, alignment_results)
+        if self.debug_mode:
+            changes = sum(1 for r in segment_results if r.has_changes)
+            logger.debug(f"Comparison: {changes}/{len(segment_results)} segments with changes")
+        self._end_timer("comparison")
+        
+        # Phase 11: Storage
+        self._start_timer("storage")
+        if self.save_pixel_masks:
+            page_workspace = self._save_comparison_results(segment_results, doc_id, page_num)
+            if self.debug_mode:
+                logger.debug(f"Saved results to: {page_workspace}")
+        self._end_timer("storage")
+        
+        # Phase 12-15: Aggregation
+        self._start_timer("aggregation")
+        total_time = time.time() - start_time
+        document_result = self._aggregate_results(
+            segment_results,
+            validation_result,
+            total_time,
+            baseline_image_path,
+            test_image_path
+        )
+        self._end_timer("aggregation")
+        
+        if self.debug_mode:
+            logger.debug(f"Comparison complete in {total_time:.2f}s")
+            logger.debug(f"Overall similarity: {document_result.overall_similarity:.2%}")
+            logger.debug(f"Change percentage: {document_result.change_percentage:.1f}%")
+        
+        return document_result
 
 if __name__ == "__main__":
     comparator = ImageComparator()
