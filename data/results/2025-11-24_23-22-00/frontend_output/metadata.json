@@ -1,0 +1,27 @@
+{
+  "comparison_id": "comparison_91c68559",
+  "timestamp": "2025-11-24_23-22-00",
+  "baseline_image": "data/test-docs/integration test/baseline_shift.png",
+  "test_image": "data/test-docs/integration test/test_shift.png",
+  "has_global_shift": false,
+  "shift_vector": null,
+  "views": {
+    "with_shift": {
+      "description": "Original comparison showing global shift",
+      "overlay": "assets/with_shift/overlay.png",
+      "side_by_side": "assets/with_shift/side_by_side.png"
+    },
+    "aligned": {
+      "description": "Comparison after shift correction",
+      "test_aligned": "assets/aligned/test_aligned.png",
+      "overlay": "assets/aligned/overlay.png",
+      "side_by_side": "assets/aligned/side_by_side.png"
+    }
+  },
+  "data_files": {
+    "shift_analysis": "data/shift_analysis.json",
+    "segments": "data/segments.json",
+    "content_changes": "data/content_changes.json",
+    "statistics": "data/statistics.json"
+  }
+}

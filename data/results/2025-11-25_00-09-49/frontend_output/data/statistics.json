@@ -1,0 +1,15 @@
+{
+  "total_segments": 29,
+  "segments_with_changes": 10,
+  "change_type_counts": {
+    "none": 20,
+    "content_change": 0,
+    "visual_change": 8,
+    "position_shift": 1,
+    "no_match": 0,
+    "skipped": 0
+  },
+  "overall_diff_percentage": 0.7232396870554765,
+  "total_diff_pixels": 13016,
+  "total_pixels": 1799680
+}

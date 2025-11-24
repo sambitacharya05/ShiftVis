@@ -21,12 +21,14 @@ class ChangeType(str, Enum):
     
     Values:
         NONE: No changes detected (identical content)
-        VISUAL_CHANGE: Content has changed (pixels differ)
+        CONTENT_CHANGE: Content has been modified/added/removed (text or graphics changed)
+        VISUAL_CHANGE: Content has changed (pixels differ, unclear classification)
         POSITION_SHIFT: Content moved but unchanged (spatial displacement)
         NO_MATCH: Segment not found in test image (added/deleted content)
         SKIPPED: Segment not processed (low importance/confidence)
     """
     NONE = "none"
+    CONTENT_CHANGE = "content_change"
     VISUAL_CHANGE = "visual_change"
     POSITION_SHIFT = "position_shift"
     NO_MATCH = "no_match"
@@ -721,6 +723,7 @@ class ImageComparator:
         self.morphology_kernel_size = settings.COMPARATOR_MORPHOLOGY_KERNEL_SIZE
         self.merge_distance = settings.COMPARATOR_MERGE_DISTANCE
         self.change_classification_delta = settings.COMPARATOR_CHANGE_CLASSIFICATION_DELTA
+        self.content_change_threshold = settings.COMPARATOR_CONTENT_CHANGE_THRESHOLD
 
         #legacy
         self.match_threshold = settings.COMPARATOR_MATCH_THRESHOLD
@@ -907,27 +910,108 @@ class ImageComparator:
 
         return diff_map, changed_pixel_count, diff_percentage
     
+    def _analyze_diff_pattern(
+            self,
+            diff_map: np.ndarray,
+            shift: tuple
+    ) -> dict:
+        """
+        Analyze the spatial distribution of diff pixels to distinguish
+        localized content changes from distributed position artifacts.
+        
+        Args:
+            diff_map: Binary difference map
+            shift: The alignment shift applied (dx, dy)
+            
+        Returns:
+            Dictionary with pattern analysis metrics:
+            - is_localized: True if changes are clustered in specific areas
+            - concentration_ratio: Ratio of pixels in main cluster vs total
+            - follows_shift_direction: True if diff pattern aligns with shift vector
+        """
+        if not np.any(diff_map > 0):
+            return {
+                'is_localized': False,
+                'concentration_ratio': 0.0,
+                'follows_shift_direction': False
+            }
+        
+        # Find all diff pixels
+        diff_coords = np.argwhere(diff_map > 0)
+        
+        if len(diff_coords) == 0:
+            return {
+                'is_localized': False,
+                'concentration_ratio': 0.0,
+                'follows_shift_direction': False
+            }
+        
+        # Calculate centroid and spread
+        centroid = diff_coords.mean(axis=0)
+        distances = np.linalg.norm(diff_coords - centroid, axis=1)
+        std_distance = distances.std()
+        
+        # Localized if changes are tightly clustered (low std relative to image size)
+        image_diagonal = np.sqrt(diff_map.shape[0]**2 + diff_map.shape[1]**2)
+        is_localized = std_distance < (image_diagonal * 0.15)  # Within 15% of diagonal
+        
+        # Calculate concentration ratio (how much is in main cluster)
+        # Use median + 1.5*std as threshold for main cluster
+        median_dist = np.median(distances)
+        cluster_threshold = median_dist + 1.5 * std_distance
+        in_cluster = distances <= cluster_threshold
+        concentration_ratio = in_cluster.sum() / len(diff_coords)
+        
+        # Check if diff pattern follows shift direction
+        follows_shift_direction = False
+        shift_magnitude = np.sqrt(shift[0]**2 + shift[1]**2)
+        if shift_magnitude > 2:  # Only check if there's a significant shift
+            # Calculate main axis of diff distribution
+            if len(diff_coords) > 2:
+                # Use PCA-like approach: find direction of maximum variance
+                centered_coords = diff_coords - centroid
+                cov_matrix = np.cov(centered_coords.T)
+                eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+                main_axis = eigenvectors[:, eigenvalues.argmax()]
+                
+                # Normalize shift vector
+                shift_vector = np.array([shift[1], shift[0]])  # Note: shift is (dx, dy) but coords are (row, col)
+                shift_vector_norm = shift_vector / shift_magnitude
+                
+                # Check alignment with shift direction (cosine similarity)
+                alignment = abs(np.dot(main_axis, shift_vector_norm))
+                follows_shift_direction = alignment > 0.7  # Strong alignment
+        
+        return {
+            'is_localized': is_localized,
+            'concentration_ratio': concentration_ratio,
+            'follows_shift_direction': follows_shift_direction
+        }
+    
     def _classify_change_type(
             self,
             alignment_result: AlignmentResult,
             diff_percentage: float,
-            diff_pixel_count: int
+            diff_pixel_count: int,
+            diff_map: np.ndarray = None
     ) -> ChangeType:
         """
         Classify the type of change detected between segments.
         
-        Decision logic:
+        Enhanced decision logic:
         1. NO_MATCH/LOW_CONFIDENCE → return early
         2. Below min_change_pixels → NONE
         3. High similarity (tier1) + minimal shift → NONE
-        4. LARGE_SHIFT type + high similarity (tier2) → POSITION_SHIFT
-        5. Large shift magnitude + high similarity (tier2) → POSITION_SHIFT  
-        6. Everything else → VISUAL_CHANGE
+        4. LOCAL_SHIFT with significant diffs + localized pattern → CONTENT_CHANGE
+        5. LARGE_SHIFT type + high similarity (tier2) → POSITION_SHIFT or VISUAL_CHANGE
+        6. Large shift magnitude + high similarity (tier2) → POSITION_SHIFT
+        7. Everything else → VISUAL_CHANGE
         
         Args:
             alignment_result: Result from alignment
             diff_percentage: Percentage of pixels that differ
             diff_pixel_count: Absolute count of changed pixels
+            diff_map: Binary difference map for pattern analysis (optional)
             
         Returns:
             ChangeType classification
@@ -953,6 +1037,50 @@ class ImageComparator:
             if diff_percentage < self.min_change_percentage:
                 return ChangeType.NONE
         
+        # ENHANCED: Detect content changes when LOCAL_SHIFT alignment is used
+        # but significant diffs remain, suggesting alignment compensated for content change
+        if (alignment_result.alignment_type == AlignmentType.LOCAL_SHIFT and
+            diff_percentage >= self.content_change_threshold and
+            diff_pixel_count >= self.min_change_pixels):
+            
+            # Debug logging for key segments
+            segment_id = alignment_result.segment_id if hasattr(alignment_result, 'segment_id') else 'unknown'
+            if self.logger and self.debug_mode:
+                self.logger.debug(
+                    f"[CONTENT_CHANGE CHECK] {segment_id}: "
+                    f"diff_pct={diff_percentage:.3f}%, threshold={self.content_change_threshold}%, "
+                    f"diff_px={diff_pixel_count}, min_px={self.min_change_pixels}"
+                )
+            
+            # If we have the diff map, analyze the pattern
+            if diff_map is not None:
+                pattern = self._analyze_diff_pattern(diff_map, shift)
+                
+                if self.logger and self.debug_mode:
+                    self.logger.debug(
+                        f"[PATTERN ANALYSIS] {segment_id}: "
+                        f"localized={pattern['is_localized']}, "
+                        f"concentration={pattern['concentration_ratio']:.3f}, "
+                        f"follows_shift={pattern['follows_shift_direction']}"
+                    )
+                
+                # Localized changes that don't follow shift direction → likely content change
+                if pattern['is_localized'] and not pattern['follows_shift_direction']:
+                    if self.logger and self.debug_mode:
+                        self.logger.info(f"[CLASSIFICATION] {segment_id}: CONTENT_CHANGE (localized, not following shift)")
+                    return ChangeType.CONTENT_CHANGE
+                
+                # High concentration + localized → content change
+                if pattern['concentration_ratio'] > 0.7 and pattern['is_localized']:
+                    if self.logger and self.debug_mode:
+                        self.logger.info(f"[CLASSIFICATION] {segment_id}: CONTENT_CHANGE (high concentration)")
+                    return ChangeType.CONTENT_CHANGE
+            
+            # Even without pattern analysis, significant diffs with LOCAL_SHIFT suggest content change
+            if self.logger and self.debug_mode:
+                self.logger.info(f"[CLASSIFICATION] {segment_id}: CONTENT_CHANGE (fallback - significant diffs)")
+            return ChangeType.CONTENT_CHANGE
+        
         # POSITION_SHIFT: Content moved but structurally similar
         # Case 1: Explicit LARGE_SHIFT type with good tier-2 similarity
         if (alignment_result.alignment_type == AlignmentType.LARGE_SHIFT and
@@ -972,6 +1100,106 @@ class ImageComparator:
         
         # Default: visual change
         return ChangeType.VISUAL_CHANGE
+    
+    def _detect_global_shift(
+            self,
+            alignment_results: List[AlignmentResult],
+            confidence_threshold: float = 0.75,
+            tolerance_px: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Detect global page shift from segment alignment results.
+        
+        Uses RANSAC-like approach to find consistent shift pattern across segments.
+        A global shift is detected when a large majority of segments share a similar
+        displacement vector, indicating the entire page moved rather than individual
+        content changes.
+        
+        Args:
+            alignment_results: List of segment alignment results
+            confidence_threshold: Minimum fraction of segments that must agree (0-1)
+            tolerance_px: Maximum deviation from median shift to be considered inlier
+            
+        Returns:
+            Dictionary containing:
+                - detected: bool - Whether global shift was detected
+                - shift_vector: Tuple[int, int] - (dx, dy) shift if detected, else (0, 0)
+                - confidence: float - Fraction of segments agreeing (0-1)
+                - direction: str - 'horizontal_left', 'horizontal_right', 'vertical_up', 
+                                  'vertical_down', 'diagonal', or 'none'
+                - magnitude: float - Shift magnitude in pixels
+                - inlier_count: int - Number of segments agreeing with shift
+                - total_segments: int - Total number of segments analyzed
+        """
+        # Collect shift vectors from valid alignments
+        shifts = []
+        for result in alignment_results:
+            # Only include segments with successful alignment
+            if result.alignment_type in [AlignmentType.EXACT_MATCH, 
+                                        AlignmentType.LOCAL_SHIFT, 
+                                        AlignmentType.LARGE_SHIFT]:
+                shifts.append(result.shift)
+        
+        # Need sufficient samples
+        if len(shifts) < 3:
+            return {
+                'detected': False,
+                'shift_vector': (0, 0),
+                'confidence': 0.0,
+                'direction': 'none',
+                'magnitude': 0.0,
+                'inlier_count': 0,
+                'total_segments': len(alignment_results)
+            }
+        
+        shifts_array = np.array(shifts)
+        
+        # Calculate median shift as robust estimate
+        median_shift = np.median(shifts_array, axis=0)
+        median_dx, median_dy = int(median_shift[0]), int(median_shift[1])
+        
+        # Find inliers: segments within tolerance of median shift
+        distances = np.linalg.norm(shifts_array - median_shift, axis=1)
+        inliers = distances <= tolerance_px
+        inlier_count = int(inliers.sum())  # Convert numpy int to Python int
+        confidence = float(inlier_count / len(shifts))  # Convert to Python float
+        
+        # Calculate shift magnitude
+        magnitude = float(np.sqrt(median_dx**2 + median_dy**2))
+        
+        # Classify direction
+        direction = 'none'
+        if magnitude > 2:  # Only classify if meaningful shift
+            abs_dx, abs_dy = abs(median_dx), abs(median_dy)
+            if abs_dx > 2 * abs_dy:  # Predominantly horizontal
+                direction = 'horizontal_right' if median_dx > 0 else 'horizontal_left'
+            elif abs_dy > 2 * abs_dx:  # Predominantly vertical
+                direction = 'vertical_down' if median_dy > 0 else 'vertical_up'
+            else:  # Diagonal
+                direction = 'diagonal'
+        
+        # Detect global shift if confidence exceeds threshold and magnitude is significant
+        detected = bool(confidence >= confidence_threshold and magnitude >= 3)  # Convert to Python bool
+        
+        if self.logger and self.debug_mode:
+            self.logger.info(
+                f"[GLOBAL SHIFT] Detected={detected}, "
+                f"Shift=({median_dx}, {median_dy}), "
+                f"Magnitude={magnitude:.1f}px, "
+                f"Confidence={confidence:.1%}, "
+                f"Direction={direction}, "
+                f"Inliers={inlier_count}/{len(shifts)}"
+            )
+        
+        return {
+            'detected': detected,
+            'shift_vector': (median_dx, median_dy),
+            'confidence': confidence,
+            'direction': direction,
+            'magnitude': magnitude,
+            'inlier_count': inlier_count,
+            'total_segments': len(alignment_results)
+        }
     
     def _detect_change_regions(
             self,
@@ -1130,11 +1358,12 @@ class ImageComparator:
                 # Detect change regions
                 change_regions = self._detect_change_regions(diff_map, baseline_seg)
                 
-                # Classify change type
+                # Classify change type (pass diff_map for pattern analysis)
                 change_type = self._classify_change_type(
                     alignment_result,
                     diff_percentage,
-                    diff_pixel_count
+                    diff_pixel_count,
+                    diff_map
                 )
                 
                 # Create result
@@ -1248,6 +1477,13 @@ class ImageComparator:
             for result in comparison_results:
                 if result.pixel_diff_map is not None:
                     result.save_diff_map_to_workspace(storage_manager, page_workspace)
+        
+        # Save global shift data if available
+        if 'global_shift' in self._processing_metadata:
+            import json
+            global_shift_file = doc_workspace / "global_shift.json"
+            with open(global_shift_file, 'w') as f:
+                json.dump(self._processing_metadata['global_shift'], f, indent=2)
         
         return page_workspace
     
@@ -1423,6 +1659,25 @@ class ImageComparator:
             f"  Consistency: {validation_result.consistency_score:.2%}, "
             f"Outliers: {validation_result.outlier_count}/{validation_result.valid_segments}"
         )
+        
+        # Phase 7.5: Global Shift Detection
+        self._start_timer("shift_detection")
+        self.logger.info("[PHASE 7.5] Detecting global page shift...")
+        global_shift_data = self._detect_global_shift(alignment_results)
+        shift_time = self._end_timer("shift_detection")
+        self.logger.info(f"[PHASE 7.5] ✓ Shift detection complete in {shift_time:.2f}s")
+        if global_shift_data['detected']:
+            shift_vec = global_shift_data['shift_vector']
+            self.logger.info(
+                f"  Global shift DETECTED: ({shift_vec[0]}, {shift_vec[1]}) pixels, "
+                f"{global_shift_data['direction']}, "
+                f"confidence={global_shift_data['confidence']:.1%}"
+            )
+        else:
+            self.logger.info("  No global shift detected")
+        
+        # Store global shift data for later use
+        self._processing_metadata['global_shift'] = global_shift_data
         
         # Phase 8-10: Comparison
         self._start_timer("comparison")

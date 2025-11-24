@@ -1,0 +1,10 @@
+{
+  "detected": true,
+  "shift_vector": [
+    0,
+    14
+  ],
+  "confidence": 0.8571428571428571,
+  "direction": "vertical_down",
+  "magnitude": 14.0,
+  "inlier_count": 

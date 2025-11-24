@@ -1,0 +1,555 @@
+{
+  "segments": {
+    "seg_r0_c0": {
+      "filename": "seg_r0_c0.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c0",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r0_c1": {
+      "filename": "seg_r0_c1.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c1",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r0_c2": {
+      "filename": "seg_r0_c2.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c2",
+        "change_type": "position_shift",
+        "diff_percentage": 0.2960205078125,
+        "diff_pixel_count": 194,
+        "shift": [
+          -20,
+          0
+        ],
+        "alignment_type": "local_shift",
+        "similarity_score": 0.9925222222224898
+      }
+    },
+    "seg_r0_c3": {
+      "filename": "seg_r0_c3.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c3",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r0_c4": {
+      "filename": "seg_r0_c4.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c4",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r0_c6": {
+      "filename": "seg_r0_c6.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c6",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r0_c8": {
+      "filename": "seg_r0_c8.npz",
+      "shape": [
+        256,
+        157
+      ],
+      "metadata": {
+        "segment_id": "seg_r0_c8",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          -20,
+          0
+        ],
+        "alignment_type": "local_shift",
+        "similarity_score": 0.999865937044036
+      }
+    },
+    "seg_r1_c2": {
+      "filename": "seg_r1_c2.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r1_c2",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r1_c3": {
+      "filename": "seg_r1_c3.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r1_c3",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r1_c4": {
+      "filename": "seg_r1_c4.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r1_c4",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r1_c5": {
+      "filename": "seg_r1_c5.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r1_c5",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r2_c2": {
+      "filename": "seg_r2_c2.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r2_c2",
+        "change_type": "visual_change",
+        "diff_percentage": 1.0284423828125,
+        "diff_pixel_count": 674,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 0.9817765473197833
+      }
+    },
+    "seg_r2_c3": {
+      "filename": "seg_r2_c3.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r2_c3",
+        "change_type": "visual_change",
+        "diff_percentage": 2.4139404296875,
+        "diff_pixel_count": 1582,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9548284488535024
+      }
+    },
+    "seg_r2_c4": {
+      "filename": "seg_r2_c4.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r2_c4",
+        "change_type": "visual_change",
+        "diff_percentage": 2.10723876953125,
+        "diff_pixel_count": 1381,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9605552679811898
+      }
+    },
+    "seg_r2_c5": {
+      "filename": "seg_r2_c5.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r2_c5",
+        "change_type": "visual_change",
+        "diff_percentage": 2.36968994140625,
+        "diff_pixel_count": 1553,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9540652769141295
+      }
+    },
+    "seg_r2_c6": {
+      "filename": "seg_r2_c6.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r2_c6",
+        "change_type": "none",
+        "diff_percentage": 0.27008056640625,
+        "diff_pixel_count": 177,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 0.9945865997418867
+      }
+    },
+    "seg_r3_c2": {
+      "filename": "seg_r3_c2.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r3_c2",
+        "change_type": "visual_change",
+        "diff_percentage": 2.3162841796875,
+        "diff_pixel_count": 1518,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9538844465164521
+      }
+    },
+    "seg_r3_c3": {
+      "filename": "seg_r3_c3.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r3_c3",
+        "change_type": "visual_change",
+        "diff_percentage": 4.52117919921875,
+        "diff_pixel_count": 2963,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9083380362049255
+      }
+    },
+    "seg_r3_c4": {
+      "filename": "seg_r3_c4.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r3_c4",
+        "change_type": "visual_change",
+        "diff_percentage": 2.14385986328125,
+        "diff_pixel_count": 1405,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9554371985845078
+      }
+    },
+    "seg_r3_c5": {
+      "filename": "seg_r3_c5.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r3_c5",
+        "change_type": "visual_change",
+        "diff_percentage": 2.39410400390625,
+        "diff_pixel_count": 1569,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "large_shift",
+        "similarity_score": 0.9489865518741661
+      }
+    },
+    "seg_r4_c2": {
+      "filename": "seg_r4_c2.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r4_c2",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r4_c3": {
+      "filename": "seg_r4_c3.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r4_c3",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r4_c4": {
+      "filename": "seg_r4_c4.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r4_c4",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r4_c5": {
+      "filename": "seg_r4_c5.npz",
+      "shape": [
+        256,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r4_c5",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r5_c2": {
+      "filename": "seg_r5_c2.npz",
+      "shape": [
+        197,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r5_c2",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r5_c3": {
+      "filename": "seg_r5_c3.npz",
+      "shape": [
+        197,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r5_c3",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r5_c4": {
+      "filename": "seg_r5_c4.npz",
+      "shape": [
+        197,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r5_c4",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r5_c5": {
+      "filename": "seg_r5_c5.npz",
+      "shape": [
+        197,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r5_c5",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    },
+    "seg_r5_c6": {
+      "filename": "seg_r5_c6.npz",
+      "shape": [
+        197,
+        256
+      ],
+      "metadata": {
+        "segment_id": "seg_r5_c6",
+        "change_type": "none",
+        "diff_percentage": 0.0,
+        "diff_pixel_count": 0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match",
+        "similarity_score": 1.0
+      }
+    }
+  }
+}

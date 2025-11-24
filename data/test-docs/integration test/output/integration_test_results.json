@@ -1,45 +1,11 @@
 {
-  "overall_similarity": 0.60756421374659,
+  "overall_similarity": 0.583772378229736,
   "total_segments": 54,
-  "segments_with_changes": 3,
-  "change_percentage": 5.555555555555555,
+  "segments_with_changes": 9,
+  "change_percentage": 16.666666666666664,
   "segment_results": [
     {
       "segment_id": "seg_r0_c0",
-      "has_changes": false,
-      "change_type": "skipped",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
-      "metadata": {}
-    },
-    {
-      "segment_id": "seg_r0_c1",
-      "has_changes": true,
-      "change_type": "visual_change",
-      "diff_percentage": 0.37841796875,
-      "diff_pixel_count": 248,
-      "change_regions": [
-        {
-          "x": 443,
-          "y": 39,
-          "width": 44,
-          "height": 15,
-          "confidence": 0.6931818181818182,
-          "label": "change_seg_r0_c1"
-        }
-      ],
-      "metadata": {
-        "similarity_score": 0.9894066546362899,
-        "shift": [
-          -20,
-          0
-        ],
-        "alignment_type": "local_shift"
-      }
-    },
-    {
-      "segment_id": "seg_r0_c2",
       "has_changes": false,
       "change_type": "none",
       "diff_percentage": 0.0,
@@ -52,6 +18,47 @@
           0
         ],
         "alignment_type": "exact_match"
+      }
+    },
+    {
+      "segment_id": "seg_r0_c1",
+      "has_changes": false,
+      "change_type": "none",
+      "diff_percentage": 0.0,
+      "diff_pixel_count": 0,
+      "change_regions": [],
+      "metadata": {
+        "similarity_score": 1.0,
+        "shift": [
+          0,
+          0
+        ],
+        "alignment_type": "exact_match"
+      }
+    },
+    {
+      "segment_id": "seg_r0_c2",
+      "has_changes": true,
+      "change_type": "position_shift",
+      "diff_percentage": 0.2960205078125,
+      "diff_pixel_count": 194,
+      "change_regions": [
+        {
+          "x": 462,
+          "y": 20,
+          "width": 16,
+          "height": 24,
+          "confidence": 0.4817708333333333,
+          "label": "change_seg_r0_c2"
+        }
+      ],
+      "metadata": {
+        "similarity_score": 0.9925222222224898,
+        "shift": [
+          -20,
+          0
+        ],
+        "alignment_type": "local_shift"
       }
     },
     {
@@ -89,17 +96,12 @@
     {
       "segment_id": "seg_r0_c5",
       "has_changes": false,
-      "change_type": "none",
+      "change_type": "skipped",
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 1.0,
-        "shift": [
-          0,
-          0
-        ],
-        "alignment_type": "exact_match"
+        "error": "1 validation error for SegmentComparisonResult\n  Value error, Inconsistent state: has_changes=True but change_type=content_change. When has_changes=True, change_type must be one of: no_match, position_shift, visual_change [type=value_error, input_value={'segment_id': 'seg_r0_c5...t_type': 'local_shift'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
       }
     },
     {
@@ -125,16 +127,25 @@
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
-      "metadata": {}
+      "metadata": {
+        "error": "1 validation error for SegmentComparisonResult\n  Value error, Inconsistent state: has_changes=True but change_type=content_change. When has_changes=True, change_type must be one of: no_match, position_shift, visual_change [type=value_error, input_value={'segment_id': 'seg_r0_c7...t_type': 'local_shift'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+      }
     },
     {
       "segment_id": "seg_r0_c8",
       "has_changes": false,
-      "change_type": "skipped",
+      "change_type": "none",
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
-      "metadata": {}
+      "metadata": {
+        "similarity_score": 0.999865937044036,
+        "shift": [
+          -20,
+          0
+        ],
+        "alignment_type": "local_shift"
+      }
     },
     {
       "segment_id": "seg_r1_c0",
@@ -148,43 +159,11 @@
     {
       "segment_id": "seg_r1_c1",
       "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.3204345703125,
-      "diff_pixel_count": 210,
-      "change_regions": [
-        {
-          "x": 446,
-          "y": 331,
-          "width": 12,
-          "height": 15,
-          "confidence": 0.4083333333333333,
-          "label": "change_seg_r1_c1"
-        },
-        {
-          "x": 460,
-          "y": 330,
-          "width": 27,
-          "height": 16,
-          "confidence": 0.4074074074074074,
-          "label": "change_seg_r1_c1"
-        },
-        {
-          "x": 444,
-          "y": 298,
-          "width": 43,
-          "height": 16,
-          "confidence": 0.21002906976744187,
-          "label": "change_seg_r1_c1"
-        }
-      ],
-      "metadata": {
-        "similarity_score": 0.9828622206496647,
-        "shift": [
-          0,
-          -2
-        ],
-        "alignment_type": "local_shift"
-      }
+      "change_type": "skipped",
+      "diff_percentage": 0.0,
+      "diff_pixel_count": 0,
+      "change_regions": [],
+      "metadata": {}
     },
     {
       "segment_id": "seg_r1_c2",
@@ -253,17 +232,12 @@
     {
       "segment_id": "seg_r1_c6",
       "has_changes": false,
-      "change_type": "none",
+      "change_type": "skipped",
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 1.0,
-        "shift": [
-          0,
-          0
-        ],
-        "alignment_type": "exact_match"
+        "error": "1 validation error for SegmentComparisonResult\n  Value error, Inconsistent state: has_changes=True but change_type=content_change. When has_changes=True, change_type must be one of: no_match, position_shift, visual_change [type=value_error, input_value={'segment_id': 'seg_r1_c6...t_type': 'local_shift'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
       }
     },
     {
@@ -304,77 +278,154 @@
     },
     {
       "segment_id": "seg_r2_c2",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.0030517578125,
-      "diff_pixel_count": 2,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 1.0284423828125,
+      "diff_pixel_count": 674,
+      "change_regions": [
+        {
+          "x": 620,
+          "y": 703,
+          "width": 98,
+          "height": 15,
+          "confidence": 0.7639455782312925,
+          "label": "change_seg_r2_c2"
+        }
+      ],
       "metadata": {
-        "similarity_score": 0.9880569197799934,
+        "similarity_score": 0.9817765473197833,
         "shift": [
-          -20,
+          0,
           0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
       "segment_id": "seg_r2_c3",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 2.4139404296875,
+      "diff_pixel_count": 1582,
+      "change_regions": [
+        {
+          "x": 693,
+          "y": 703,
+          "width": 256,
+          "height": 15,
+          "confidence": 0.741796875,
+          "label": "change_seg_r2_c3"
+        }
+      ],
       "metadata": {
-        "similarity_score": 1.0,
+        "similarity_score": 0.9548284488535024,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
       "segment_id": "seg_r2_c4",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.048828125,
-      "diff_pixel_count": 32,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 2.10723876953125,
+      "diff_pixel_count": 1381,
+      "change_regions": [
+        {
+          "x": 1066,
+          "y": 703,
+          "width": 110,
+          "height": 15,
+          "confidence": 0.566969696969697,
+          "label": "change_seg_r2_c4"
+        },
+        {
+          "x": 959,
+          "y": 703,
+          "width": 105,
+          "height": 15,
+          "confidence": 0.6514285714285715,
+          "label": "change_seg_r2_c4"
+        },
+        {
+          "x": 924,
+          "y": 703,
+          "width": 30,
+          "height": 15,
+          "confidence": 0.5022222222222222,
+          "label": "change_seg_r2_c4"
+        }
+      ],
       "metadata": {
-        "similarity_score": 0.9988369464915952,
+        "similarity_score": 0.9605552679811898,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
       "segment_id": "seg_r2_c5",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 2.36968994140625,
+      "diff_pixel_count": 1553,
+      "change_regions": [
+        {
+          "x": 1155,
+          "y": 704,
+          "width": 21,
+          "height": 14,
+          "confidence": 0.45408163265306123,
+          "label": "change_seg_r2_c5"
+        },
+        {
+          "x": 1350,
+          "y": 703,
+          "width": 61,
+          "height": 15,
+          "confidence": 0.7109289617486338,
+          "label": "change_seg_r2_c5"
+        },
+        {
+          "x": 1179,
+          "y": 703,
+          "width": 165,
+          "height": 15,
+          "confidence": 0.7791919191919192,
+          "label": "change_seg_r2_c5"
+        }
+      ],
       "metadata": {
-        "similarity_score": 1.0,
+        "similarity_score": 0.9540652769141295,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
       "segment_id": "seg_r2_c6",
       "has_changes": false,
       "change_type": "none",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
+      "diff_percentage": 0.27008056640625,
+      "diff_pixel_count": 177,
+      "change_regions": [
+        {
+          "x": 1386,
+          "y": 703,
+          "width": 30,
+          "height": 15,
+          "confidence": 0.6822222222222222,
+          "label": "change_seg_r2_c6"
+        }
+      ],
       "metadata": {
-        "similarity_score": 1.0,
+        "similarity_score": 0.9945865997418867,
         "shift": [
           0,
           0
@@ -420,75 +471,166 @@
     },
     {
       "segment_id": "seg_r3_c2",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 2.3162841796875,
+      "diff_pixel_count": 1518,
+      "change_regions": [
+        {
+          "x": 639,
+          "y": 727,
+          "width": 79,
+          "height": 16,
+          "confidence": 0.6174841772151899,
+          "label": "change_seg_r3_c2"
+        },
+        {
+          "x": 587,
+          "y": 727,
+          "width": 46,
+          "height": 16,
+          "confidence": 0.6195652173913043,
+          "label": "change_seg_r3_c2"
+        },
+        {
+          "x": 620,
+          "y": 703,
+          "width": 98,
+          "height": 16,
+          "confidence": 0.6517857142857143,
+          "label": "change_seg_r3_c2"
+        }
+      ],
       "metadata": {
-        "similarity_score": 1.0,
+        "similarity_score": 0.9538844465164521,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
       "segment_id": "seg_r3_c3",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 4.52117919921875,
+      "diff_pixel_count": 2963,
+      "change_regions": [
+        {
+          "x": 794,
+          "y": 727,
+          "width": 127,
+          "height": 16,
+          "confidence": 0.5184547244094488,
+          "label": "change_seg_r3_c3"
+        },
+        {
+          "x": 693,
+          "y": 727,
+          "width": 100,
+          "height": 16,
+          "confidence": 0.534375,
+          "label": "change_seg_r3_c3"
+        },
+        {
+          "x": 693,
+          "y": 703,
+          "width": 256,
+          "height": 16,
+          "confidence": 0.66455078125,
+          "label": "change_seg_r3_c3"
+        }
+      ],
       "metadata": {
-        "similarity_score": 1.0,
+        "similarity_score": 0.9083380362049255,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
       "segment_id": "seg_r3_c4",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.21514892578125,
-      "diff_pixel_count": 141,
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 2.14385986328125,
+      "diff_pixel_count": 1405,
       "change_regions": [
         {
-          "x": 1113,
-          "y": 715,
-          "width": 28,
-          "height": 14,
-          "confidence": 0.5522959183673469,
+          "x": 1066,
+          "y": 703,
+          "width": 110,
+          "height": 16,
+          "confidence": 0.5125,
+          "label": "change_seg_r3_c4"
+        },
+        {
+          "x": 959,
+          "y": 703,
+          "width": 105,
+          "height": 16,
+          "confidence": 0.5976190476190476,
+          "label": "change_seg_r3_c4"
+        },
+        {
+          "x": 924,
+          "y": 703,
+          "width": 30,
+          "height": 15,
+          "confidence": 0.38666666666666666,
           "label": "change_seg_r3_c4"
         }
       ],
       "metadata": {
-        "similarity_score": 0.9934203920113361,
+        "similarity_score": 0.9554371985845078,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
       "segment_id": "seg_r3_c5",
-      "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.0,
-      "diff_pixel_count": 0,
-      "change_regions": [],
+      "has_changes": true,
+      "change_type": "visual_change",
+      "diff_percentage": 2.39410400390625,
+      "diff_pixel_count": 1569,
+      "change_regions": [
+        {
+          "x": 1155,
+          "y": 704,
+          "width": 21,
+          "height": 14,
+          "confidence": 0.42517006802721086,
+          "label": "change_seg_r3_c5"
+        },
+        {
+          "x": 1350,
+          "y": 703,
+          "width": 61,
+          "height": 16,
+          "confidence": 0.6480532786885246,
+          "label": "change_seg_r3_c5"
+        },
+        {
+          "x": 1179,
+          "y": 703,
+          "width": 165,
+          "height": 16,
+          "confidence": 0.7198863636363636,
+          "label": "change_seg_r3_c5"
+        }
+      ],
       "metadata": {
-        "similarity_score": 1.0,
+        "similarity_score": 0.9489865518741661,
         "shift": [
           0,
           0
         ],
-        "alignment_type": "exact_match"
+        "alignment_type": "large_shift"
       }
     },
     {
@@ -498,7 +640,9 @@
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
-      "metadata": {}
+      "metadata": {
+        "error": "1 validation error for SegmentComparisonResult\n  Value error, Inconsistent state: has_changes=True but change_type=content_change. When has_changes=True, change_type must be one of: no_match, position_shift, visual_change [type=value_error, input_value={'segment_id': 'seg_r3_c6...t_type': 'local_shift'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+      }
     },
     {
       "segment_id": "seg_r3_c7",
@@ -530,18 +674,11 @@
     {
       "segment_id": "seg_r4_c1",
       "has_changes": false,
-      "change_type": "none",
-      "diff_percentage": 0.03204345703125,
-      "diff_pixel_count": 21,
+      "change_type": "skipped",
+      "diff_percentage": 0.0,
+      "diff_pixel_count": 0,
       "change_regions": [],
-      "metadata": {
-        "similarity_score": 0.9929352567084498,
-        "shift": [
-          -20,
-          -20
-        ],
-        "alignment_type": "local_shift"
-      }
+      "metadata": {}
     },
     {
       "segment_id": "seg_r4_c2",
@@ -567,37 +704,28 @@
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9801310892078584,
+        "similarity_score": 1.0,
         "shift": [
-          -20,
-          -20
+          0,
+          0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
       "segment_id": "seg_r4_c4",
-      "has_changes": true,
-      "change_type": "visual_change",
-      "diff_percentage": 0.7415771484375,
-      "diff_pixel_count": 486,
-      "change_regions": [
-        {
-          "x": 978,
-          "y": 941,
-          "width": 72,
-          "height": 17,
-          "confidence": 0.6176470588235294,
-          "label": "change_seg_r4_c4"
-        }
-      ],
+      "has_changes": false,
+      "change_type": "none",
+      "diff_percentage": 0.0,
+      "diff_pixel_count": 0,
+      "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9816554888370307,
+        "similarity_score": 1.0,
         "shift": [
-          -8,
+          0,
           0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
@@ -608,28 +736,23 @@
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9801356786178165,
+        "similarity_score": 1.0,
         "shift": [
-          -20,
-          -20
+          0,
+          0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
       "segment_id": "seg_r4_c6",
       "has_changes": false,
-      "change_type": "none",
+      "change_type": "skipped",
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9809541357733416,
-        "shift": [
-          -20,
-          -20
-        ],
-        "alignment_type": "local_shift"
+        "error": "1 validation error for SegmentComparisonResult\n  Value error, Inconsistent state: has_changes=True but change_type=content_change. When has_changes=True, change_type must be one of: no_match, position_shift, visual_change [type=value_error, input_value={'segment_id': 'seg_r4_c6...t_type': 'local_shift'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
       }
     },
     {
@@ -662,18 +785,11 @@
     {
       "segment_id": "seg_r5_c1",
       "has_changes": false,
-      "change_type": "none",
+      "change_type": "skipped",
       "diff_percentage": 0.0,
       "diff_pixel_count": 0,
       "change_regions": [],
-      "metadata": {
-        "similarity_score": 0.992637678536128,
-        "shift": [
-          -20,
-          -20
-        ],
-        "alignment_type": "local_shift"
-      }
+      "metadata": {}
     },
     {
       "segment_id": "seg_r5_c2",
@@ -693,27 +809,18 @@
     },
     {
       "segment_id": "seg_r5_c3",
-      "has_changes": true,
-      "change_type": "visual_change",
-      "diff_percentage": 0.4084708121827411,
-      "diff_pixel_count": 206,
-      "change_regions": [
-        {
-          "x": 693,
-          "y": 1193,
-          "width": 69,
-          "height": 14,
-          "confidence": 0.4927536231884058,
-          "label": "change_seg_r5_c3"
-        }
-      ],
+      "has_changes": false,
+      "change_type": "none",
+      "diff_percentage": 0.0,
+      "diff_pixel_count": 0,
+      "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9801697716724158,
+        "similarity_score": 1.0,
         "shift": [
-          -18,
+          0,
           0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
@@ -724,12 +831,12 @@
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9902886099867665,
+        "similarity_score": 1.0,
         "shift": [
-          -20,
-          -20
+          0,
+          0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
@@ -740,12 +847,12 @@
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9902886099867665,
+        "similarity_score": 1.0,
         "shift": [
-          -20,
-          -20
+          0,
+          0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
@@ -756,12 +863,12 @@
       "diff_pixel_count": 0,
       "change_regions": [],
       "metadata": {
-        "similarity_score": 0.9866880894204084,
+        "similarity_score": 1.0,
         "shift": [
-          -20,
-          -20
+          0,
+          0
         ],
-        "alignment_type": "local_shift"
+        "alignment_type": "exact_match"
       }
     },
     {
@@ -784,29 +891,23 @@
     }
   ],
   "validation_result": {
-    "is_consistent": false,
+    "is_consistent": true,
     "dominant_shift": [
       0,
       0
     ],
-    "outlier_count": 13,
-    "consistency_score": 0.6060606060606061,
+    "outlier_count": 7,
+    "consistency_score": 0.7941176470588236,
     "total_segments": 54,
-    "valid_segments": 33,
+    "valid_segments": 34,
     "outlier_ids": [
-      "seg_0",
-      "seg_6",
-      "seg_12",
-      "seg_21",
+      "seg_2",
+      "seg_5",
+      "seg_7",
+      "seg_8",
+      "seg_13",
       "seg_23",
-      "seg_24",
-      "seg_25",
-      "seg_26",
-      "seg_27",
-      "seg_29",
-      "seg_30",
-      "seg_31",
-      "seg_32"
+      "seg_28"
     ],
     "shift_statistics": {
       "mad_x": 1e-6,
@@ -821,63 +922,186 @@
       "mean_y": 0.0
     }
   },
-  "global_shift_applied": null,
+  "global_shift_applied": [
+    0,
+    0
+  ],
   "merged_change_regions": [
     {
-      "x": 443,
-      "y": 39,
-      "width": 44,
+      "x": 462,
+      "y": 20,
+      "width": 16,
+      "height": 24,
+      "confidence": 0.4817708333333333,
+      "label": "change_seg_r0_c2"
+    },
+    {
+      "x": 620,
+      "y": 703,
+      "width": 98,
       "height": 15,
-      "confidence": 0.6931818181818182,
-      "label": "change_seg_r0_c1"
-    },
-    {
-      "x": 446,
-      "y": 331,
-      "width": 12,
-      "height": 15,
-      "confidence": 0.4083333333333333,
-      "label": "change_seg_r1_c1"
-    },
-    {
-      "x": 460,
-      "y": 330,
-      "width": 27,
-      "height": 16,
-      "confidence": 0.4074074074074074,
-      "label": "change_seg_r1_c1"
-    },
-    {
-      "x": 444,
-      "y": 298,
-      "width": 43,
-      "height": 16,
-      "confidence": 0.21002906976744187,
-      "label": "change_seg_r1_c1"
-    },
-    {
-      "x": 1113,
-      "y": 715,
-      "width": 28,
-      "height": 14,
-      "confidence": 0.5522959183673469,
-      "label": "change_seg_r3_c4"
-    },
-    {
-      "x": 978,
-      "y": 941,
-      "width": 72,
-      "height": 17,
-      "confidence": 0.6176470588235294,
-      "label": "change_seg_r4_c4"
+      "confidence": 0.7639455782312925,
+      "label": "change_seg_r2_c2"
     },
     {
       "x": 693,
-      "y": 1193,
-      "width": 69,
+      "y": 703,
+      "width": 256,
+      "height": 15,
+      "confidence": 0.741796875,
+      "label": "change_seg_r2_c3"
+    },
+    {
+      "x": 1066,
+      "y": 703,
+      "width": 110,
+      "height": 15,
+      "confidence": 0.566969696969697,
+      "label": "change_seg_r2_c4"
+    },
+    {
+      "x": 959,
+      "y": 703,
+      "width": 105,
+      "height": 15,
+      "confidence": 0.6514285714285715,
+      "label": "change_seg_r2_c4"
+    },
+    {
+      "x": 924,
+      "y": 703,
+      "width": 30,
+      "height": 15,
+      "confidence": 0.5022222222222222,
+      "label": "change_seg_r2_c4"
+    },
+    {
+      "x": 1155,
+      "y": 704,
+      "width": 21,
       "height": 14,
-      "confidence": 0.4927536231884058,
-      "label": "change_seg_r5_c3"
+      "confidence": 0.45408163265306123,
+      "label": "change_seg_r2_c5"
+    },
+    {
+      "x": 1350,
+      "y": 703,
+      "width": 61,
+      "height": 15,
+      "confidence": 0.7109289617486338,
+      "label": "change_seg_r2_c5"
+    },
+    {
+      "x": 1179,
+      "y": 703,
+      "width": 165,
+      "height": 15,
+      "confidence": 0.7791919191919192,
+      "label": "change_seg_r2_c5"
+    },
+    {
+      "x": 1386,
+      "y": 703,
+      "width": 30,
+      "height": 15,
+      "confidence": 0.6822222222222222,
+      "label": "change_seg_r2_c6"
+    },
+    {
+      "x": 639,
+      "y": 727,
+      "width": 79,
+      "height": 16,
+      "confidence": 0.6174841772151899,
+      "label": "change_seg_r3_c2"
+    },
+    {
+      "x": 587,
+      "y": 727,
+      "width": 46,
+      "height": 16,
+      "confidence": 0.6195652173913043,
+      "label": "change_seg_r3_c2"
+    },
+    {
+      "x": 620,
+      "y": 703,
+      "width": 98,
+      "height": 16,
+      "confidence": 0.6517857142857143,
+      "label": "change_seg_r3_c2"
+    },
+    {
+      "x": 794,
+      "y": 727,
+      "width": 127,
+      "height": 16,
+      "confidence": 0.5184547244094488,
+      "label": "change_seg_r3_c3"
+    },
+    {
+      "x": 693,
+      "y": 727,
+      "width": 100,
+      "height": 16,
+      "confidence": 0.534375,
+      "label": "change_seg_r3_c3"
+    },
+    {
+      "x": 693,
+      "y": 703,
+      "width": 256,
+      "height": 16,
+      "confidence": 0.66455078125,
+      "label": "change_seg_r3_c3"
+    },
+    {
+      "x": 1066,
+      "y": 703,
+      "width": 110,
+      "height": 16,
+      "confidence": 0.5125,
+      "label": "change_seg_r3_c4"
+    },
+    {
+      "x": 959,
+      "y": 703,
+      "width": 105,
+      "height": 16,
+      "confidence": 0.5976190476190476,
+      "label": "change_seg_r3_c4"
+    },
+    {
+      "x": 924,
+      "y": 703,
+      "width": 30,
+      "height": 15,
+      "confidence": 0.38666666666666666,
+      "label": "change_seg_r3_c4"
+    },
+    {
+      "x": 1155,
+      "y": 704,
+      "width": 21,
+      "height": 14,
+      "confidence": 0.42517006802721086,
+      "label": "change_seg_r3_c5"
+    },
+    {
+      "x": 1350,
+      "y": 703,
+      "width": 61,
+      "height": 16,
+      "confidence": 0.6480532786885246,
+      "label": "change_seg_r3_c5"
+    },
+    {
+      "x": 1179,
+      "y": 703,
+      "width": 165,
+      "height": 16,
+      "confidence": 0.7198863636363636,
+      "label": "change_seg_r3_c5"
     }
   ],
   "visualization_data": {
@@ -888,330 +1112,330 @@
         "width": 256,
         "height": 256,
         "intensity": 0.0,
-        "change_type": "skipped"
+        "change_type": "none"
       },
       {
         "x": 231,
         "y": 0,
         "width": 256,
         "height": 256,
-        "intensity": 0.37841796875,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 462,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.2960205078125,
+        "change_type": "position_shift"
+      },
+      {
+        "x": 693,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 924,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 1155,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1386,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 1617,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1848,
+        "y": 0,
+        "width": 157,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 0,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 231,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 462,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 693,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 924,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 1155,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 1386,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1617,
+        "y": 231,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1848,
+        "y": 231,
+        "width": 157,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 0,
+        "y": 462,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 231,
+        "y": 462,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 462,
+        "y": 462,
+        "width": 256,
+        "height": 256,
+        "intensity": 1.0284423828125,
         "change_type": "visual_change"
       },
       {
-        "x": 462,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 693,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 924,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1155,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1386,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1617,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 1848,
-        "y": 0,
-        "width": 157,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 0,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 231,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.3204345703125,
-        "change_type": "none"
-      },
-      {
-        "x": 462,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 693,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 924,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1155,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1386,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1617,
-        "y": 231,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 1848,
-        "y": 231,
-        "width": 157,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 0,
-        "y": 462,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 231,
-        "y": 462,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 462,
-        "y": 462,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0030517578125,
-        "change_type": "none"
-      },
-      {
         "x": 693,
         "y": 462,
         "width": 256,
         "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
+        "intensity": 2.4139404296875,
+        "change_type": "visual_change"
       },
       {
         "x": 924,
         "y": 462,
         "width": 256,
         "height": 256,
-        "intensity": 0.048828125,
-        "change_type": "none"
-      },
-      {
-        "x": 1155,
-        "y": 462,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1386,
-        "y": 462,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1617,
-        "y": 462,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 1848,
-        "y": 462,
-        "width": 157,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 0,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 231,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 462,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 693,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 924,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.21514892578125,
-        "change_type": "none"
-      },
-      {
-        "x": 1155,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 1386,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 1617,
-        "y": 693,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 1848,
-        "y": 693,
-        "width": 157,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 0,
-        "y": 924,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "skipped"
-      },
-      {
-        "x": 231,
-        "y": 924,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.03204345703125,
-        "change_type": "none"
-      },
-      {
-        "x": 462,
-        "y": 924,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 693,
-        "y": 924,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.0,
-        "change_type": "none"
-      },
-      {
-        "x": 924,
-        "y": 924,
-        "width": 256,
-        "height": 256,
-        "intensity": 0.7415771484375,
+        "intensity": 2.10723876953125,
         "change_type": "visual_change"
       },
       {
         "x": 1155,
+        "y": 462,
+        "width": 256,
+        "height": 256,
+        "intensity": 2.36968994140625,
+        "change_type": "visual_change"
+      },
+      {
+        "x": 1386,
+        "y": 462,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.27008056640625,
+        "change_type": "none"
+      },
+      {
+        "x": 1617,
+        "y": 462,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1848,
+        "y": 462,
+        "width": 157,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 0,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 231,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 462,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 2.3162841796875,
+        "change_type": "visual_change"
+      },
+      {
+        "x": 693,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 4.52117919921875,
+        "change_type": "visual_change"
+      },
+      {
+        "x": 924,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 2.14385986328125,
+        "change_type": "visual_change"
+      },
+      {
+        "x": 1155,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 2.39410400390625,
+        "change_type": "visual_change"
+      },
+      {
+        "x": 1386,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1617,
+        "y": 693,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 1848,
+        "y": 693,
+        "width": 157,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 0,
+        "y": 924,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 231,
+        "y": 924,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "skipped"
+      },
+      {
+        "x": 462,
+        "y": 924,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 693,
+        "y": 924,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 924,
+        "y": 924,
+        "width": 256,
+        "height": 256,
+        "intensity": 0.0,
+        "change_type": "none"
+      },
+      {
+        "x": 1155,
         "y": 924,
         "width": 256,
         "height": 256,
@@ -1224,7 +1448,7 @@
         "width": 256,
         "height": 256,
         "intensity": 0.0,
-        "change_type": "none"
+        "change_type": "skipped"
       },
       {
         "x": 1617,
@@ -1256,7 +1480,7 @@
         "width": 256,
         "height": 197,
         "intensity": 0.0,
-        "change_type": "none"
+        "change_type": "skipped"
       },
       {
         "x": 462,
@@ -1271,8 +1495,8 @@
         "y": 1155,
         "width": 256,
         "height": 197,
-        "intensity": 0.4084708121827411,
-        "change_type": "visual_change"
+        "intensity": 0.0,
+        "change_type": "none"
       },
       {
         "x": 924,
@@ -1315,19 +1539,20 @@
         "change_type": "skipped"
       }
     ],
-    "change_regions_count": 7,
+    "change_regions_count": 22,
     "change_type_distribution": {
-      "none": 30,
-      "visual_change": 3,
-      "position_shift": 0,
+      "none": 20,
+      "content_change": 0,
+      "visual_change": 8,
+      "position_shift": 1,
       "no_match": 0,
-      "skipped": 21
+      "skipped": 25
     }
   },
-  "processing_time": 22.833165168762207,
+  "processing_time": 85.16660690307617,
   "metadata": {
-    "baseline_path": "/Users/sambitacharya/Documents/AG/ShiftVis/data/test-docs/integration test/bl_jp.png",
-    "test_path": "/Users/sambitacharya/Documents/AG/ShiftVis/data/test-docs/integration test/test_jp.png",
+    "baseline_path": "/Users/sambitacharya/Documents/projects/Image compare/v1_AI/ShiftVis/data/test-docs/integration test/baseline_1.png",
+    "test_path": "/Users/sambitacharya/Documents/projects/Image compare/v1_AI/ShiftVis/data/test-docs/integration test/test_3.png",
     "config": {
       "segmentation": {
         "segment_size": 256,
@@ -1343,10 +1568,10 @@
         "variance_threshold": 25.0
       },
       "comparison": {
-        "pixel_diff_threshold": 0.4,
-        "min_change_pixels": 150,
-        "min_contour_area": 55,
-        "morphology_kernel_size": 9,
+        "pixel_diff_threshold": 0.11764705882352941,
+        "min_change_pixels": 128,
+        "min_contour_area": 50,
+        "morphology_kernel_size": 5,
         "merge_distance": 10
       },
       "validation": {
@@ -1356,7 +1581,7 @@
       "performance": {
         "parallel_alignment": false,
         "parallel_comparison": false,
-        "max_workers": 8
+        "max_workers": 4
       },
       "storage": {
         "output_dir": "data/results",
@@ -1365,12 +1590,13 @@
       }
     },
     "timing": {
-      "preprocessing": 0.0221710205078125,
-      "segmentation": 0.010612964630126953,
-      "alignment": 22.773408889770508,
-      "validation": 0.0010838508605957031,
-      "comparison": 0.004945278167724609,
-      "storage": 0.02045583724975586
+      "preprocessing": 0.033308982849121094,
+      "segmentation": 0.012688875198364258,
+      "alignment": 85.08365106582642,
+      "validation": 0.002998828887939453,
+      "shift_detection": 0.00007891654968261719,
+      "comparison": 0.012758016586303711,
+      "storage": 0.02060699462890625
     }
   }
 }

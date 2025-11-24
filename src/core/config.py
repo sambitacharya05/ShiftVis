@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Aligner Settings
     ALIGNER_LOCAL_SEARCH_RADIUS: int = 20
     ALIGNER_LARGE_SEARCH_RADIUS: int = 50
-    ALIGNER_TIER1_THRESHOLD: float = 0.98
+    ALIGNER_TIER1_THRESHOLD: float = 0.98  # Keep original threshold for alignment matching
     ALIGNER_TIER2_THRESHOLD: float = 0.90
     ALIGNER_ENTROPY_THRESHOLD: float = 1.0
     ALIGNER_VARIANCE_THRESHOLD: float = 25.0
@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     COMPARATOR_PIXEL_DIFF_THRESHOLD: float = 0.40  # 64/255 - detect real changes, some artifacts
     COMPARATOR_MIN_CHANGE_PIXELS: int = 150  # Very low to catch 1-2 character changes (~200px)
     COMPARATOR_MIN_CHANGE_PERCENTAGE: float = 0.35  # 0.35% of segment must change
+    COMPARATOR_CONTENT_CHANGE_THRESHOLD: float = 0.5  # 0.5% - likely content change vs position shift
     COMPARATOR_MIN_CONTOUR_AREA: int = 55  # Reduced to catch smaller text
     COMPARATOR_MORPHOLOGY_KERNEL_SIZE: int = 9  # Medium kernel for noise removal
     COMPARATOR_MERGE_DISTANCE: int = 10

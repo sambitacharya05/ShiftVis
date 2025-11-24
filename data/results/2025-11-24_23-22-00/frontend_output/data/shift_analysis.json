@@ -1,0 +1,12 @@
+{
+  "detected": false,
+  "shift_vector": [
+    0,
+    0
+  ],
+  "confidence": 0.0,
+  "direction": "none",
+  "magnitude": 0.0,
+  "inlier_count": 0,
+  "total_segments": 13
+}
