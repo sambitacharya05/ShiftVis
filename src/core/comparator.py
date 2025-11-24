@@ -1,13 +1,16 @@
 from typing import Optional, List, Dict, Tuple, Any
 from enum import Enum
+from pathlib import Path
 import numpy as np
 from pydantic import BaseModel, Field, model_validator, ConfigDict
+import cv2
 
-from .segmentor import Segment
-from .aligner import AlignmentResult, AlignmentType
-from .validator import ValidationResult
+from .segmentor import Segment, ImageSegmentor
+from .aligner import AlignmentResult, AlignmentType, ImageAligner
+from .validator import ValidationResult, ConsistencyValidator
+from .preprocessor import Preprocessor
 from .config import settings
-
+from .storage_manager import ComparisonStorageManager
 
 class ChangeType(str, Enum):
     """
@@ -332,6 +335,62 @@ class SegmentComparisonResult(BaseModel):
             }
         
         return data
+    
+    def save_diff_map_to_workspace(
+            self,
+            storage_manager: ComparisonStorageManager,
+            page_workspace: Path
+        ) -> Optional[str]:
+        """
+        Save this segment's diff map to workspace.
+        
+        Args:
+            storage_manager: ComparisonStorageManager instance
+            page_workspace: Page workspace directory
+            
+        Returns:
+            Relative path to saved diff map, or None if no diff map
+        """
+        if self.pixel_diff_map is None:
+            return None
+    
+        # Save with metadata
+        metadata = {
+            "segment_id": self.segment_id,
+            "change_type": self.change_type.value,
+            "diff_percentage": self.diff_percentage,
+            "diff_pixel_count": self.diff_pixel_count
+        }
+        
+        path = storage_manager.save_diff_map(
+            page_workspace,
+            self.segment_id,
+            self.pixel_diff_map,
+            metadata
+        )
+    
+        # Clear from memory after saving
+        self.pixel_diff_map = None
+        
+        return path
+
+
+def load_diff_map_from_workspace(
+    self,
+    storage_manager: ComparisonStorageManager,
+    page_workspace: Path
+) -> np.ndarray:
+    """
+    Load this segment's diff map from workspace.
+    
+    Args:
+        storage_manager: ComparisonStorageManager instance
+        page_workspace: Page workspace directory
+        
+    Returns:
+        Decompressed diff map array
+    """
+    return storage_manager.load_diff_map(page_workspace, self.segment_id)
 
 
 class DocumentComparisonResult(BaseModel):
@@ -624,91 +683,240 @@ class DocumentComparisonResult(BaseModel):
         with open(filepath, 'r', encoding='utf-8') as f:
             return cls.model_validate_json(f.read())
 
+class ImageComparator:
 
-# ============================================================================
-# USAGE EXAMPLES
-# ============================================================================
+    def __init__(self):
+        self.preprocessor = Preprocessor()
+        self.segmentor = ImageSegmentor(
+            segment_size=settings.SEGMENT_SIZE,
+            overlap_percentage=settings.SEGMENT_OVERLAP_PERCENTAGE
+        )
+        self.aligner = ImageAligner(
+            local_search_radius=settings.ALIGNER_LOCAL_SEARCH_RADIUS,
+            large_search_radius=settings.ALIGNER_LARGE_SEARCH_RADIUS,
+            tier1_similarity_threshold=settings.ALIGNER_TIER1_THRESHOLD,
+            tier2_similarity_threshold=settings.ALIGNER_TIER2_THRESHOLD,
+            entropy_threshold=settings.ALIGNER_ENTROPY_THRESHOLD,
+            variance_threshold=settings.ALIGNER_VARIANCE_THRESHOLD
+        )
+        self.validator = ConsistencyValidator(
+            consistency_threshold=settings.VALIDATOR_CONSISTENCY_THRESHOLD,
+            outlier_threshold=settings.VALIDATOR_OUTLIER_THRESHOLD
+        )
+        self.settings = settings
+
+        self.pixel_diff_threshold = settings.COMPARATOR_PIXEL_DIFF_THRESHOLD
+        self.min_change_pixels = settings.COMPARATOR_MIN_CHANGE_PIXELS
+        self.min_contour_area = settings.COMPARATOR_MIN_CONTOUR_AREA
+        self.morphology_kernel_size = settings.COMPARATOR_MORPHOLOGY_KERNEL_SIZE
+        self.merge_distance = settings.COMPARATOR_MERGE_DISTANCE
+        self.change_classification_delta = settings.COMPARATOR_CHANGE_CLASSIFICATION_DELTA
+
+        #legacy
+        self.match_threshold = settings.COMPARATOR_MATCH_THRESHOLD
+        self.change_threshold = settings.COMPARATOR_CHANGE_THRESHOLD
+        self.significance_threshold = settings.COMPARATOR_SIGNIFICANCE_THRESHOLD
+
+        # visualization
+        self.addition_color = settings.get_addition_color_rgb()
+        self.deletion_color = settings.get_deletion_color_rgb()
+        self.modification_color = settings.get_modification_color_rgb()
+        self.bbox_thickness = settings.VISUALIZATION_BBOX_THICKNESS
+        self.overlay_alpha = settings.VISUALIZATION_OVERLAY_ALPHA
+        self.heatmap_colormap = settings.VISUALIZATION_HEATMAP_COLORMAP
+
+        # performance
+        self.enable_parallel_alignment = settings.PERFORMANCE_ENABLE_PARALLEL_ALIGNMENT
+        self.enable_parallel_comparison = settings.PERFORMANCE_ENABLE_PARALLEL_COMPARISON
+        self.max_workers = settings.PERFORMANCE_MAX_WORKERS
+        self.chunk_size = settings.PERFORMANCE_CHUNK_SIZE
+
+        # storage
+        self.output_dir = Path(settings.STORAGE_OUTPUT_DIR)
+        self.save_pixel_masks = settings.STORAGE_SAVE_PIXEL_MASKS
+        self.mask_storage_format = settings.STORAGE_MASK_STORAGE_FORMAT
+
+        # logging/debug
+        self.debug_mode = settings.DEBUG_MODE
+        self.save_intermediate_results = settings.LOGGING_SAVE_INTERMEDIATE_RESULTS
+        self.intermediate_output_dir = Path(settings.LOGGING_INTERMEDIATE_OUTPUT_DIR)
+        self.timing_enabled = settings.LOGGING_TIMING_ENABLED
+
+        # runtime
+        self._timing_data: Dict[str, float] = {}  # Phase timing tracking
+        self._cache: Dict[str, Any] = {}  # Optional result caching
+        self._processing_metadata: Dict[str, Any] = {}  # Current comparison metadata
+
+        # output dir
+        if self.save_intermediate_results:
+            self.intermediate_output_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # debug logging init
+        if self.debug_mode:
+            self._log_initialization()
+
+
+    # ============================================================================
+    # INTERNAL UTILITIES
+    # ============================================================================
+    def _log_initialization(self) -> None:
+        """Log initialization configuration for debugging."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.debug("=" * 70)
+        logger.debug("ImageComparator Initialized")
+        logger.debug("=" * 70)
+        logger.debug(f"Segment size: {self.segmentor.segment_size}px")
+        logger.debug(f"Segment overlap: {self.segmentor.overlap}px ({settings.SEGMENT_OVERLAP_PERCENTAGE*100:.0f}%)")
+        logger.debug(f"Tier-1 threshold: {self.aligner.tier1_similarity_threshold}")
+        logger.debug(f"Tier-2 threshold: {self.aligner.tier2_similarity_threshold}")
+        logger.debug(f"Pixel diff threshold: {self.pixel_diff_threshold:.4f}")
+        logger.debug(f"Min change pixels: {self.min_change_pixels}")
+        logger.debug(f"Parallel alignment: {self.enable_parallel_alignment}")
+        logger.debug(f"Parallel comparison: {self.enable_parallel_comparison}")
+        logger.debug(f"Output directory: {self.output_dir}")
+        logger.debug("=" * 70)
+    
+    def _start_timer(self, phase: str) -> None:
+        """Start timing a processing phase."""
+        if self.timing_enabled:
+            import time
+            self._timing_data[f"{phase}_start"] = time.time()
+    
+    def _end_timer(self, phase: str) -> float:
+        """End timing a processing phase and return duration."""
+        if self.timing_enabled:
+            import time
+            start_key = f"{phase}_start"
+            if start_key in self._timing_data:
+                duration = time.time() - self._timing_data[start_key]
+                self._timing_data[phase] = duration
+                return duration
+        return 0.0
+    
+    def get_timing_summary(self) -> Dict[str, float]:
+        """Get timing summary for all phases."""
+        return {
+            k: v for k, v in self._timing_data.items()
+            if not k.endswith('_start')
+        }
+    
+    def reset(self) -> None:
+        """Reset internal state for new comparison."""
+        self._timing_data.clear()
+        self._cache.clear()
+        self._processing_metadata.clear()
+    
+    def get_config_summary(self) -> Dict[str, Any]:
+        """Get current configuration as dictionary."""
+        return {
+            "segmentation": {
+                "segment_size": self.segmentor.segment_size,
+                "overlap_pixels": self.segmentor.overlap,
+                "overlap_percentage": settings.SEGMENT_OVERLAP_PERCENTAGE
+            },
+            "alignment": {
+                "local_search_radius": self.aligner.local_search_radius,
+                "large_search_radius": self.aligner.large_search_radius,
+                "tier1_threshold": self.aligner.tier1_similarity_threshold,
+                "tier2_threshold": self.aligner.tier2_similarity_threshold,
+                "entropy_threshold": self.aligner.entropy_threshold,
+                "variance_threshold": self.aligner.variance_threshold
+            },
+            "comparison": {
+                "pixel_diff_threshold": self.pixel_diff_threshold,
+                "min_change_pixels": self.min_change_pixels,
+                "min_contour_area": self.min_contour_area,
+                "morphology_kernel_size": self.morphology_kernel_size,
+                "merge_distance": self.merge_distance
+            },
+            "validation": {
+                "outlier_threshold": self.validator.outlier_threshold,
+                "consistency_threshold": self.validator.consistency_threshold
+            },
+            "performance": {
+                "parallel_alignment": self.enable_parallel_alignment,
+                "parallel_comparison": self.enable_parallel_comparison,
+                "max_workers": self.max_workers
+            },
+            "storage": {
+                "output_dir": str(self.output_dir),
+                "save_pixel_masks": self.save_pixel_masks,
+                "mask_format": self.mask_storage_format
+            }
+        }
+    
+    def _calculate_pixel_diff(
+            self,
+            baseline_segment: np.ndarray,
+            test_segment: np.ndarray
+    ) -> Tuple[np.ndarray, int, float]:
+        
+        abs_diff = cv2.absdiff(baseline_segment, test_segment)
+
+        threashold_value = int(self.pixel_diff_threshold * 255)
+        _, diff_map = cv2.threshold(
+            abs_diff,
+            threashold_value,
+            255,
+            cv2.THRESH_BINARY
+        )
+
+        changed_pixel_count = np.count_nonzero(diff_map)
+        total_pixels = diff_map.size
+        diff_percentage = (changed_pixel_count / total_pixels) * 100.0 if total_pixels > 0 else 0.0
+
+        return diff_map, changed_pixel_count, diff_percentage
+    
+    def _classify_change_type(
+            self,
+            alignment_result: AlignmentResult,
+            diff_percentage: float,
+            diff_pixel_count: int
+    ) -> ChangeType:
+        if alignment_result.alignment_type == AlignmentType.NO_MATCH:
+            return ChangeType.NO_MATCH
+        
+        if alignment_result.alignment_type == AlignmentType.LOW_CONFIDENCE:
+            return ChangeType.SKIPPED
+        
+        if diff_pixel_count < self.min_change_pixels:
+            return ChangeType.NONE
+        
+        similarity_score = alignment_result.similarity_score
+        shift = alignment_result.shift
+        shift_magnitude = np.sqrt(shift[0]**2 + shift[1]**2)
+
+        if similarity_score >= self.aligner.tier1_similarity_threshold and shift_magnitude <= 2:
+            if diff_percentage < 1.0:
+                return ChangeType.NONE
+            
+        if (similarity_score >= self.aligner.tier2_similarity_threshold and 
+            shift_magnitude > 5 and
+            diff_percentage > 2.0):
+            return ChangeType.POSITION_SHIFT
+        
+        if (alignment_result.alignment_type == AlignmentType.LARGE_SHIFT and
+            similarity_score >= self.aligner.tier2_similarity_threshold and
+            diff_percentage > 3.0):
+            return ChangeType.POSITION_SHIFT
+        
+        return ChangeType.VISUAL_CHANGE
+        
+    
+    def _compare_segments(
+            self,
+            aligned_segments: List[Tuple[Segment, AlignmentResult]]
+    ) -> List[SegmentComparisonResult]:
+        pass
 
 if __name__ == "__main__":
-    """
-    Example usage of Pydantic-based comparison data structures.
-    """
-    
-    # Example 1: Create a BoundingBox with validation
-    print("=" * 70)
-    print("Example 1: BoundingBox Creation & Validation")
-    print("=" * 70)
-    
-    try:
-        bbox = BoundingBox(
-            x=100, y=200, width=50, height=30, 
-            confidence=0.95, label="Text change"
-        )
-        print("✅ Valid BoundingBox created")
-        print(f"   Area: {bbox.area()} pixels")
-        print(f"   Center: {bbox.center()}")
-    except Exception as e:
-        print(f"❌ Error: {e}")
-    
-    try:
-        # This will fail validation (negative width)
-        invalid_bbox = BoundingBox(
-            x=100, y=200, width=-50, height=30, confidence=0.95
-        )
-    except Exception as e:
-        print(f"✅ Validation caught invalid width: {type(e).__name__}")
-    
-    # Example 2: Create SegmentComparisonResult
-    print("\n" + "=" * 70)
-    print("Example 2: SegmentComparisonResult")
-    print("=" * 70)
-    
-    try:
-        seg_result = SegmentComparisonResult(
-            segment_id="seg_r2_c3",
-            has_changes=True,
-            change_type=ChangeType.VISUAL_CHANGE,
-            diff_percentage=2.5,
-            diff_pixel_count=1600,
-            change_regions=[bbox],
-            metadata={"ssim": 0.94, "processing_time_ms": 150}
-        )
-        print(f"✅ Created: {seg_result.segment_id}")
-        print(f"   Summary: {seg_result.get_change_summary()}")
-        print(f"   Significant: {seg_result.is_significant()}")
-        print(f"   Has alignment: {seg_result.has_alignment()}")
-    except Exception as e:
-        print(f"❌ Error: {e}")
-    
-    # Example 3: Test validation (inconsistent state)
-    print("\n" + "=" * 70)
-    print("Example 3: Validation - Inconsistent State")
-    print("=" * 70)
-    
-    try:
-        # This will fail: has_changes=True but change_type=NONE
-        invalid_result = SegmentComparisonResult(
-            segment_id="seg_invalid",
-            has_changes=True,
-            change_type=ChangeType.NONE,  # ❌ Inconsistent!
-            diff_percentage=0.0,
-            diff_pixel_count=0
-        )
-    except Exception as e:
-        print(f"✅ Validation caught inconsistency: {type(e).__name__}")
-        print(f"   Message: {str(e)[:80]}...")
-    
-    # Example 4: JSON Serialization
-    print("\n" + "=" * 70)
-    print("Example 4: JSON Serialization")
-    print("=" * 70)
-    
-    json_data = seg_result.to_dict_serializable()
-    print("✅ Serialized to dict")
-    print(f"   Keys: {list(json_data.keys())}")
-    print(f"   Change summary: {json_data['change_summary']}")
-    print(f"   Change density: {json_data['change_density']:.2f}")
-    
-    print("\n" + "=" * 70)
-    print("✅ All examples completed!")
-    print("=" * 70)
+    comparator = ImageComparator()
+    seg1 = np.zeros((256, 256, 3), dtype=np.uint8)
+    seg2 = seg1.copy()
+    seg2[100:150, 100:150] = 255  # White square
+
+    diff_map, count, pct = comparator._calculate_pixel_diff(seg1, seg2)
+    print(f"Changed: {count} pixels ({pct:.2f}%)")

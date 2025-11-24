@@ -2,6 +2,9 @@
 Tests for the Comparator data structures.
 """
 
+from pathlib import Path
+import sys
+
 import pytest
 import numpy as np
 from src.core.comparator import (
@@ -9,6 +12,9 @@ from src.core.comparator import (
 )
 from src.core.validator import ValidationResult
 from src.core.aligner import AlignmentResult, AlignmentType
+
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 class TestComparatorStructures:
     """Tests for Comparator Pydantic models."""
@@ -153,3 +159,24 @@ class TestComparatorStructures:
                 validation_result=val_result,
                 processing_time=1.0
             )
+    
+    def test_pixel_diff(self):
+        """Test pixel difference calculation."""
+        from src.core.comparator import ImageComparator
+        comparator = ImageComparator()
+        
+        # Create test segments
+        seg1 = np.zeros((256, 256), dtype=np.uint8)
+        seg2 = seg1.copy()
+        seg2[100:150, 100:150] = 255  # White square
+
+        # Test
+        diff_map, count, pct = comparator._calculate_pixel_diff(seg1, seg2)
+        
+        print("✓ Test passed!")
+        print(f"  Changed: {count} pixels ({pct:.2f}%)")
+        print(f"  Diff map shape: {diff_map.shape}")
+        print("  Expected: ~2500 pixels (50x50 square)")
+        
+        assert count == 2500, f"Expected 2500 changed pixels, got {count}"
+        assert 3.7 < pct < 3.9, f"Expected ~3.81% change, got {pct:.2f}%"
